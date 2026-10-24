@@ -6,7 +6,7 @@ A self-hosted, single-owner portfolio tracker inspired by Ghostfolio. It reads a
 
 ## Setup
 
-Requirements: Docker with Compose, and Node.js 26 for the checks below.
+Requirements: Docker with Compose. Node.js 26 is only needed to run the host-side commands (import, manual entry, backup) and the checks at the end; the dashboard and database run entirely in Docker.
 
 1. Create the configuration. `.env` is git-ignored; see [.env.example](.env.example) for every variable.
 
@@ -23,14 +23,22 @@ Requirements: Docker with Compose, and Node.js 26 for the checks below.
    docker compose --profile app up -d --build
    ```
 
-   The dashboard is at <http://127.0.0.1:3000>. PostgreSQL data lives in the named volume `portfolio-db` and survives restarts and rebuilds.
+   The dashboard is at <http://127.0.0.1:3000>. Sign in with the `APP_PASSWORD` from your `.env`. The dashboard stays empty until you add data in the next steps. PostgreSQL data lives in the named volume `portfolio-db` and survives restarts and rebuilds.
 
-3. Import your Ghostfolio export. This runs from the host and needs `DATABASE_URL` in `.env` (see [.env.example](.env.example)):
+3. Import your Ghostfolio export. This runs from the host. Add this line to `.env`, with your own `POSTGRES_PASSWORD` in place of the placeholder (the database is published on loopback port 55432):
+
+   ```sh
+   DATABASE_URL=postgres://portfolio:<POSTGRES_PASSWORD>@127.0.0.1:55432/portfolio
+   ```
+
+   Save the JSON from Ghostfolio's activities export as `private/ghostfolio-export.json` (`private/` is git-ignored), then run:
 
    ```sh
    npm ci
    npm run import:ghostfolio -- private/ghostfolio-export.json
    ```
+
+   To try the app first, import the sample at [docs/examples/ghostfolio-export.sample.json](docs/examples/ghostfolio-export.sample.json) instead. If you have no Ghostfolio data, skip to step 4 (manual entry) or use **Import positions** below.
 
    It prints `created`, `skipped` and `rejected` counts. Re-importing an identical export creates nothing, and an invalid export is rejected without saving anything. Details: [docs/local-import.md](docs/local-import.md).
 
@@ -46,7 +54,16 @@ Requirements: Docker with Compose, and Node.js 26 for the checks below.
    Details and validation rules: [docs/local-import.md](docs/local-import.md#manual-entry).
    Purchases can also be added in the web app (**Add buy**), with search-as-you-type symbol lookup: [docs/local-import.md](docs/local-import.md#adding-a-buy-in-the-web-app).
 
-5. Fetch prices and rates with the worker ([docs/yfinance-worker.md](docs/yfinance-worker.md)). The optional `scheduler` profile repeats the refresh every `REFRESH_INTERVAL_SECONDS` (default 86400) set in `.env`.
+   Current holdings can be loaded from a spreadsheet with **Import positions** on the dashboard (`/import`). Download the CSV template there; its header is `account,symbol,quantity,average_price,currency,date`. You get a preview before anything is saved, and repeat uploads skip identical rows. Rules: [docs/local-import.md](docs/local-import.md#bulk-import-through-the-ui).
+
+5. Fetch prices and rates with the worker ([docs/yfinance-worker.md](docs/yfinance-worker.md)). Until this has run once, the dashboard has holdings but no prices. The one-off refresh derives everything it needs from your ledger:
+
+   ```sh
+   docker compose run --rm --entrypoint python worker -m worker.refresh --dry-run   # preview the range, no network
+   docker compose run --rm --entrypoint python worker -m worker.refresh
+   ```
+
+   The optional `scheduler` profile repeats the refresh every `REFRESH_INTERVAL_SECONDS` (default 86400) set in `.env`.
    For intraday prices, also start the `live` profile (`docker compose --profile live up -d live`): it re-fetches only the last week of prices for held symbols and today's FX every `LIVE_REFRESH_INTERVAL_SECONDS` (default 300), and the open dashboard reloads its data every minute while the tab is visible. Yahoo quotes can be delayed by up to about 15 minutes depending on the exchange.
 
 Yahoo Finance is an unofficial source: it may rate limit or change without notice. A failed refresh keeps the previously cached values, and the dashboard warns when prices or exchange rates are more than seven days old.
@@ -56,6 +73,14 @@ Yahoo Finance is an unofficial source: it may rate limit or change without notic
 - Web app: `GET /api/health` returns `200 {"status":"ok"}` when the database answers, otherwise `503 {"status":"unavailable"}`. It needs no login and reveals nothing else. Compose uses it as the `app` container health check.
 - Database: Compose health-checks it with `pg_isready`.
 - Status: `docker compose ps` shows `healthy` or `unhealthy` for each service.
+
+## Troubleshooting
+
+- **`port is already allocated` on 3000 or 55432:** another program uses the port. Stop it, or change the host port in `compose.yaml`.
+- **`Incorrect password` on the login page:** use the `APP_PASSWORD` from `.env`. After changing `.env`, run `docker compose --profile app up -d` again so the container picks it up.
+- **`DATABASE_URL is required` from `npm run import:ghostfolio`:** add the `DATABASE_URL` line from step 3 to `.env`. Check that the database is up with `docker compose ps`.
+- **Prices missing or stale:** run the refresh in step 5 and read its summary. Yahoo can hit a rate limit; wait and try again, since failed refreshes keep the previous values.
+- **Setup stops with `Set POSTGRES_PASSWORD`:** the variable is empty in `.env`.
 
 ## Upgrading
 
