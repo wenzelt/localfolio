@@ -1,0 +1,47 @@
+{
+  "meta": { "version": "0.0.1", "date": "2026-01-15T12:00:00.000Z" },
+  "accounts": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "Example broker",
+      "currency": "EUR",
+      "balance": 0,
+      "balances": [],
+      "comment": null,
+      "isExcluded": false,
+      "platformId": null
+    }
+  ],
+  "assetProfiles": [],
+  "platforms": [],
+  "tags": [],
+  "activities": [
+    {
+      "accountId": "00000000-0000-4000-8000-000000000001",
+      "type": "BUY",
+      "symbol": "VWCE.DE",
+      "dataSource": "YAHOO",
+      "currency": "EUR",
+      "quantity": 10,
+      "unitPrice": 100.5,
+      "fee": 1,
+      "date": "2025-06-02T00:00:00.000Z",
+      "comment": null,
+      "tags": []
+    },
+    {
+      "accountId": "00000000-0000-4000-8000-000000000001",
+      "type": "BUY",
+      "symbol": "AAPL",
+      "dataSource": "YAHOO",
+      "currency": "USD",
+      "quantity": 2.5,
+      "unitPrice": 190,
+      "fee": 0,
+      "date": "2025-09-15T00:00:00.000Z",
+      "comment": null,
+      "tags": []
+    }
+  ],
+  "user": { "settings": { "currency": "EUR", "performanceCalculationType": "ROAI" } }
+}

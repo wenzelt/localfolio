@@ -22,7 +22,7 @@ From the project directory on your server:
 docker compose --profile app up -d --build app
 ```
 
-Open `http://<server-LAN-IP>:3000`. The app reads the stored ledger and cached prices/FX; it does not import data. The only page that calls Yahoo or writes is the buy form at `/buy` (see `docs/local-import.md`). Existing worker and scheduler services remain separate. The dashboard's database connection defaults to read-only transactions; the buy form's save endpoint uses a separate read-write connection.
+Open `http://<server-LAN-IP>:3000`. The app reads the stored ledger and cached prices/FX; data is loaded with the CLI or the web forms (see `docs/local-import.md`). The only pages that write are the buy form at `/buy` and the positions CSV import at `/import`, and only the buy form calls Yahoo (symbol search). Existing worker and scheduler services remain separate. The dashboard's database connection defaults to read-only transactions; the save endpoints of those two pages use a separate read-write connection.
 
 For local development: `npm run dev`. For a local production build: `npm run build` then `npm start`. Next.js loads `.env`; DATABASE_URL configures local database access. Compose uses its own PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE settings for the app.
 

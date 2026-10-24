@@ -1,6 +1,6 @@
 # Yfinance market-data worker
 
-The on-demand Python worker fetches historical FX, security daily-close history and latest available security daily closes. Yahoo `USDEUR=X` values mean **EUR per USD** and support historical EUR cost basis. Quotes and price history are cached separately; no web dashboard exists yet.
+The on-demand Python worker fetches historical FX, security daily-close history and latest available security daily closes. Yahoo `USDEUR=X` values mean **EUR per USD** and support historical EUR cost basis. Quotes and price history are cached separately; the web dashboard reads these caches (see `docs/dashboard.md`).
 
 ## Docker
 
