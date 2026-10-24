@@ -1,0 +1,172 @@
+{
+  "VEU": {
+    "weights": {
+      "United Arab Emirates": "0.5",
+      "Austria": "0.2",
+      "Australia": "4.1",
+      "Belgium": "0.6",
+      "Brazil": "1.2",
+      "Canada": "7.7",
+      "Switzerland": "5.0",
+      "Chile": "0.2",
+      "China": "7.1",
+      "Colombia": "0.1",
+      "Germany": "4.7",
+      "Denmark": "0.8",
+      "Spain": "2.2",
+      "Finland": "0.6",
+      "France": "5.0",
+      "United Kingdom": "8.1",
+      "Greece": "0.2",
+      "Hong Kong": "1.2",
+      "Hungary": "0.1",
+      "Indonesia": "0.2",
+      "Ireland": "0.2",
+      "Israel": "0.8",
+      "India": "4.0",
+      "Italy": "2.0",
+      "Japan": "16.1",
+      "Korea": "6.9",
+      "Kuwait": "0.2",
+      "Mexico": "0.5",
+      "Malaysia": "0.4",
+      "Netherlands": "3.1",
+      "Norway": "0.4",
+      "New Zealand": "0.1",
+      "Philippines": "0.1",
+      "Poland": "0.3",
+      "Portugal": "0.1",
+      "Qatar": "0.2",
+      "Saudi Arabia": "0.8",
+      "Sweden": "1.8",
+      "Singapore": "1.0",
+      "Thailand": "0.4",
+      "Turkey": "0.2",
+      "Taiwan": "9.4",
+      "South Africa": "1.0"
+    },
+    "source": "https://investor.vanguard.com/investment-products/etfs/profile/veu",
+    "as_of": "2026-09-30"
+  },
+  "SC0J.DE": {
+    "weights": {
+      "United States": "74.4",
+      "Japan": "5.9",
+      "Canada": "3.2",
+      "United Kingdom": "2.6",
+      "Germany": "2.0",
+      "France": "1.8",
+      "Australia": "1.7",
+      "Switzerland": "1.5",
+      "Netherlands": "1.4"
+    },
+    "source": "https://www.invesco.com/content/dam/invesco/uk/en/product-documents/etf/share-class/factsheet/IE00B60SX394_factsheet_en-uk.pdf",
+    "as_of": "2026-09-30"
+  },
+  "EXI2.DE": {
+    "weights": {
+      "United States": "83.31",
+      "Taiwan": "4.61",
+      "Korea": "3.71",
+      "Switzerland": "2.27",
+      "United Kingdom": "2.27",
+      "Netherlands": "1.65"
+    },
+    "source": "https://www.ishares.com/de/privatanleger/de/produkte/251769/ishares-dow-jones-global-titans-50-ucits-etf-de-fund",
+    "as_of": "2026-10-21"
+  },
+  "CW8.PA": {
+    "weights": {
+      "United States": "72.94",
+      "Japan": "5.91",
+      "United Kingdom": "3.41",
+      "Canada": "3.29",
+      "France": "2.24"
+    },
+    "source": "https://www.msci.com/documents/10199/178e6643-6ae6-47b9-82be-e1fc565ededb",
+    "as_of": "2026-09-30"
+  },
+  "ANX.PA": {
+    "weights": {
+      "United States": "94.81",
+      "Ireland": "1.79",
+      "Netherlands": "1.38",
+      "Canada": "0.91",
+      "United Kingdom": "0.73"
+    },
+    "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU1681038243/FRA/FRA/INSTITUTIONNEL/ETF",
+    "as_of": "2026-09-30"
+  },
+  "IE0001GSQ2O9.SG": {
+    "weights": {
+      "United States": "72.38",
+      "Japan": "6.00",
+      "Canada": "3.79",
+      "United Kingdom": "2.66",
+      "Switzerland": "2.21",
+      "France": "2.18",
+      "Germany": "1.69",
+      "Netherlands": "1.67",
+      "Australia": "1.43",
+      "Spain": "1.04",
+      "Italy": "0.77",
+      "Hong Kong": "0.72",
+      "Sweden": "0.65",
+      "Singapore": "0.58"
+    },
+    "source": "https://www.amundi.com/dl/doc/monthly-factsheet/IE0001GSQ2O9/DEU/DEU/RETAIL/ETF",
+    "as_of": "2026-09-30"
+  },
+  "IE000YDZG487.SG": {
+    "weights": {
+      "United States": "60.72",
+      "Taiwan": "15.35",
+      "Japan": "8.14",
+      "South Korea": "8.06",
+      "Netherlands": "5.44",
+      "Germany": "1.10",
+      "Singapore": "0.57",
+      "China": "0.33",
+      "Hong Kong": "0.10",
+      "Sweden": "0.08"
+    },
+    "source": "https://www.assetmanagement.hsbc.co.uk/api/v1/download/document/ie000ydzg487/gb/en/factsheet",
+    "as_of": "2026-09-30"
+  },
+  "LU2611732046.SG": {
+    "weights": {
+      "Germany": "100"
+    },
+    "source": "https://www.amundietf.fr/pdfDocuments/monthly-factsheet/LU2611732046/FRA/FRA/INSTITUTIONNEL/ETF",
+    "as_of": "2026-09-30"
+  },
+  "MEUD.PA": {
+    "weights": {
+      "United Kingdom": "22.87",
+      "France": "14.76",
+      "Switzerland": "13.51",
+      "Germany": "13.10",
+      "Netherlands": "8.36",
+      "Spain": "6.03",
+      "Italy": "5.74",
+      "Sweden": "4.76",
+      "Denmark": "2.55",
+      "Finland": "1.97",
+      "Belgium": "1.84",
+      "Norway": "1.24",
+      "Poland": "1.02",
+      "Ireland": "0.72",
+      "Austria": "0.67",
+      "Greece": "0.54"
+    },
+    "source": "https://www.amundietf.co.uk/pdfDocuments/monthly-factsheet/LU0908500753/ENG/GBR/RETAIL/ETF",
+    "as_of": "2026-09-30"
+  },
+  "VOO": {
+    "weights": {
+      "United States": "100"
+    },
+    "source": "https://www.spglobal.com/spdji/en/indices/equity/sp-500/",
+    "as_of": "2026-10-23"
+  }
+}

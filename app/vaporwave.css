@@ -1,0 +1,140 @@
+/* Theme two: Vaporwave / Outrun. Dark only, neon on a purple void.
+   Everything lives under the data-theme attribute the layout sets from the saved choice, so the ledger theme is untouched.
+   It re-declares the same tokens the components already read, then adds the devices that make it this theme:
+   sunset text, a perspective grid floor, a blurred sun, CRT scanlines, skewed controls and neon tube borders.
+   Gain and loss need colours of their own the system does not define: neon green and a coral red kept apart from the magenta accent. */
+html[data-theme="vaporwave"] {
+  color-scheme: dark;
+  --bg: #090014; --surface: #1a103c; --raised: #261757; --text: #e0e0e0; --muted: #b3a5d6; --border: #2d1b4e; --rule: #2d1b4e; --control: #6a47b0;
+  --positive: #39ff9a; --negative: #ff5c7c; --chart: #00ffff; --accent: #ff00ff; --on-accent: #090014;
+  --warning: #2b1f08; --warning-text: #ffd27a; --warning-edge: #ff9900;
+  --sans: var(--font-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --display: var(--font-display), "Arial Black", system-ui, sans-serif;
+  --radius: 0; --radius-control: 0; --gap: 16px;
+}
+
+/* The void: a blurred sun, a receding grid floor and a scanline overlay, all fixed behind or over the page. */
+html[data-theme="vaporwave"]::before {
+  content: ""; position: fixed; z-index: -1; pointer-events: none;
+  top: -6vh; left: 50%; width: min(600px, 100vw); height: min(600px, 100vw); transform: translateX(-50%);
+  border-radius: 50%; background: linear-gradient(to bottom, #ff9900, #ff00ff); filter: blur(100px); opacity: .2;
+}
+html[data-theme="vaporwave"] body::before {
+  content: ""; position: fixed; z-index: -1; pointer-events: none;
+  left: -50%; right: -50%; bottom: 0; height: 55vh;
+  background-image: linear-gradient(transparent 95%, rgba(255, 0, 255, .55) 95%), linear-gradient(90deg, transparent 95%, rgba(255, 0, 255, .55) 95%);
+  background-size: 40px 40px; transform: perspective(400px) rotateX(62deg); transform-origin: bottom center;
+  -webkit-mask-image: linear-gradient(to top, #000, transparent); mask-image: linear-gradient(to top, #000, transparent);
+}
+html[data-theme="vaporwave"] body::after {
+  content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none;
+  background: linear-gradient(rgba(18, 16, 20, 0) 50%, rgba(0, 0, 0, .2) 50%), linear-gradient(90deg, rgba(255, 0, 0, .05), rgba(0, 255, 0, .02), rgba(0, 0, 255, .05));
+  background-size: 100% 4px, 100% 100%;
+}
+html[data-theme="vaporwave"] body { font-size: 15px; letter-spacing: .02em; font-synthesis: none; }
+
+/* Type: Orbitron for titles and the answer figure, Share Tech Mono for everything else. */
+html[data-theme="vaporwave"] h1 {
+  width: fit-content; max-width: 100%; font: 900 clamp(24px, 6vw, 32px)/1.15 var(--display); letter-spacing: .05em; text-transform: uppercase;
+  background: linear-gradient(to right, #ff9900, #ff00ff, #00ffff); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 14px rgba(255, 0, 255, .55));
+}
+html[data-theme="vaporwave"] .brand { color: #fff; font: 900 15px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; text-shadow: 0 0 10px rgba(255, 0, 255, .8); }
+html[data-theme="vaporwave"] .brand .mark rect { stroke: var(--accent); }
+html[data-theme="vaporwave"] .card h2 { color: var(--chart); font: 700 17px/1.3 var(--display); letter-spacing: .08em; text-transform: uppercase; text-shadow: 0 0 8px rgba(0, 255, 255, .7); }
+html[data-theme="vaporwave"] .card h2::before { content: "> "; color: var(--accent); }
+html[data-theme="vaporwave"] .label, html[data-theme="vaporwave"] .stats dt { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; }
+html[data-theme="vaporwave"] .value { color: #fff; font: 700 clamp(28px, 6vw, 36px)/1.1 var(--display); letter-spacing: 0; text-shadow: 0 0 14px rgba(0, 255, 255, .5); }
+html[data-theme="vaporwave"] .mask { color: var(--accent); letter-spacing: .15em; text-shadow: 0 0 8px var(--accent); }
+html[data-theme="vaporwave"] .stats dd { font: 400 20px/1.3 var(--sans); letter-spacing: .02em; }
+html[data-theme="vaporwave"] .stats dd.positive { text-shadow: 0 0 8px rgba(57, 255, 154, .45); }
+html[data-theme="vaporwave"] .stats dd.negative { text-shadow: 0 0 8px rgba(255, 92, 124, .45); }
+
+/* Shell: the bar floats on the void, edged with an accent bar. */
+html[data-theme="vaporwave"] header {
+  background: rgba(9, 0, 20, .88); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border-style: solid; border-width: 0 0 2px; border-image: linear-gradient(to right, #ff00ff, #00ffff) 1;
+}
+html[data-theme="vaporwave"] .back { color: var(--chart); text-transform: uppercase; letter-spacing: .1em; }
+html[data-theme="vaporwave"] .back:hover { text-shadow: 0 0 8px var(--chart); }
+
+/* Cards are glass panels with a laser line on top and window dots in the corner. */
+html[data-theme="vaporwave"] .card {
+  position: relative; border: 1px solid rgba(255, 0, 255, .3); border-top: 2px solid var(--chart); border-radius: 0;
+  background: rgba(26, 16, 60, .8); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 0 20px rgba(0, 255, 255, .12);
+}
+html[data-theme="vaporwave"] .card::after { content: ""; position: absolute; top: 9px; right: 14px; width: 8px; height: 8px; border-radius: 50%; background: #ff00ff; box-shadow: -16px 0 #00ffff, -32px 0 #ff9900; }
+html[data-theme="vaporwave"] .card li a:hover { background: rgba(0, 255, 255, .08); color: var(--chart); }
+html[data-theme="vaporwave"] .card li a::after { color: var(--accent); }
+html[data-theme="vaporwave"] code { border-radius: 0; background: #000; color: var(--chart); border-color: var(--accent); }
+
+/* The privacy switch: a skewed neon outline that straightens and floods with colour on hover; magenta while values are hidden. */
+html[data-theme="vaporwave"] .privacy-toggle { border: 2px solid var(--chart); border-radius: 0; background: transparent; color: var(--chart); font: 400 14px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; transform: skewX(-12deg); }
+html[data-theme="vaporwave"] .privacy-toggle > * { transform: skewX(12deg); }
+html[data-theme="vaporwave"] .privacy-toggle:hover { transform: skewX(0); background: var(--chart); color: #000; box-shadow: 0 0 20px var(--chart); }
+html[data-theme="vaporwave"] .privacy-toggle:hover > * { transform: none; }
+html[data-theme="vaporwave"] .privacy-toggle:hover:active { transform: translateY(1px); }
+html[data-theme="vaporwave"] .privacy-toggle[data-hidden="true"] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); box-shadow: 0 0 16px var(--accent); }
+html[data-theme="vaporwave"] .privacy-toggle[data-hidden="true"]:hover { background: var(--accent); opacity: 1; box-shadow: 0 0 28px var(--accent); }
+
+/* Controls: neon outlines, square corners, terminal inputs with an underline. */
+html[data-theme="vaporwave"] button { border: 2px solid var(--accent); border-radius: 0; background: transparent; color: var(--accent); font-weight: 400; letter-spacing: .08em; text-transform: uppercase; }
+html[data-theme="vaporwave"] button:hover { background: var(--accent); color: var(--on-accent); box-shadow: 0 0 20px var(--accent); }
+html[data-theme="vaporwave"] .quiet { border-color: transparent; color: var(--text); }
+html[data-theme="vaporwave"] .quiet:hover { background: rgba(0, 255, 255, .1); color: var(--chart); box-shadow: none; }
+html[data-theme="vaporwave"] select, html[data-theme="vaporwave"] input:not([type="range"]) { border: 0; border-bottom: 2px solid var(--accent); border-radius: 0; background-color: #000; color: var(--chart); }
+html[data-theme="vaporwave"] select option { background: #0d0420; color: var(--text); }
+html[data-theme="vaporwave"] .period select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300ffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); }
+html[data-theme="vaporwave"] select:focus-visible, html[data-theme="vaporwave"] input:focus-visible { border-color: var(--chart); box-shadow: 0 0 15px var(--chart); }
+html[data-theme="vaporwave"] :focus-visible { outline: 2px solid var(--chart); outline-offset: 3px; }
+html[data-theme="vaporwave"] .login button { border-color: var(--accent); background: var(--accent); color: var(--on-accent); box-shadow: 0 0 14px rgba(255, 0, 255, .6); }
+html[data-theme="vaporwave"] .login button:hover { border-color: var(--chart); background: var(--chart); color: #000; box-shadow: 0 0 24px var(--chart); }
+html[data-theme="vaporwave"] .login [role="alert"] { text-shadow: 0 0 8px rgba(255, 92, 124, .5); }
+html[data-theme="vaporwave"] .warning { border-radius: 0; border-left-width: 4px; }
+
+/* The theme picker keeps the same shape, in neon. */
+html[data-theme="vaporwave"] .theme-picker summary { border: 2px solid var(--accent); border-radius: 0; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; }
+html[data-theme="vaporwave"] .theme-picker summary:hover, html[data-theme="vaporwave"] .theme-picker[open] summary { background: var(--accent); color: var(--on-accent); box-shadow: 0 0 16px var(--accent); }
+html[data-theme="vaporwave"] .theme-picker form { border: 2px solid var(--chart); border-radius: 0; background: #0d0420; box-shadow: 0 0 24px rgba(0, 255, 255, .25); }
+html[data-theme="vaporwave"] .theme-picker button { border: 0; color: var(--text); letter-spacing: .02em; text-transform: none; }
+html[data-theme="vaporwave"] .theme-picker button:hover, html[data-theme="vaporwave"] .theme-picker button[aria-current="true"] { background: rgba(0, 255, 255, .1); color: var(--chart); box-shadow: none; }
+html[data-theme="vaporwave"] .theme-picker button[aria-current="true"]::after { color: var(--accent); }
+html[data-theme="vaporwave"] .swatch { border-radius: 0; }
+
+/* The chart: a cyan tube over a magenta wash, on a grid of the same pink. */
+html[data-theme="vaporwave"] .chart .area { fill: var(--accent); opacity: .16; }
+html[data-theme="vaporwave"] .chart .grid { stroke: rgba(255, 0, 255, .28); }
+html[data-theme="vaporwave"] .chart .baseline { stroke: var(--accent); opacity: .7; }
+html[data-theme="vaporwave"] .chart .axis { stroke: #1a103c; }
+html[data-theme="vaporwave"] .chart .chart-reveal path:last-child { filter: drop-shadow(0 0 5px var(--chart)); }
+html[data-theme="vaporwave"] .chart .marker { fill: var(--bg); filter: drop-shadow(0 0 6px var(--chart)); }
+html[data-theme="vaporwave"] input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 0; background: linear-gradient(to right, #ff00ff, #00ffff); }
+html[data-theme="vaporwave"] input[type="range"]::-moz-range-track { height: 4px; border-radius: 0; background: linear-gradient(to right, #ff00ff, #00ffff); }
+html[data-theme="vaporwave"] input[type="range"]::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -6px; border: 2px solid var(--chart); border-radius: 0; background: var(--accent); transform: rotate(45deg); }
+html[data-theme="vaporwave"] input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 2px solid var(--chart); border-radius: 0; background: var(--accent); transform: rotate(45deg); }
+
+/* Heatmap and map: square tiles on the void, white text on every tint, countries lit in cyan. */
+html[data-theme="vaporwave"] .heatmap-tile { border-color: var(--bg); border-radius: 0; color: #fff; }
+html[data-theme="vaporwave"] .heatmap-tile:hover { box-shadow: inset 0 0 0 2px var(--chart), 0 0 14px var(--chart); }
+html[data-theme="vaporwave"] .heatmap-tile .tile-key { border-radius: 0; background: #0d0420; color: var(--chart); }
+html[data-theme="vaporwave"] .country-world path { stroke: var(--bg); }
+html[data-theme="vaporwave"] .country-allocation { border-radius: 0; }
+html[data-theme="vaporwave"] summary { color: var(--chart); }
+
+/* Motion is only ever a quick, linear state change, and only when the visitor allows it. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="vaporwave"] button, html[data-theme="vaporwave"] .privacy-toggle, html[data-theme="vaporwave"] .theme-picker summary, html[data-theme="vaporwave"] .heatmap-tile, html[data-theme="vaporwave"] .back {
+    transition: transform 200ms linear, background-color 200ms linear, border-color 200ms linear, color 200ms linear, box-shadow 200ms linear;
+  }
+  html[data-theme="vaporwave"] .privacy-toggle > * { transition: transform 200ms linear; }
+}
+
+/* The neon stays on a phone, a little quieter. */
+@media (max-width: 640px) {
+  html[data-theme="vaporwave"] body::before { background-size: 28px 28px; }
+  html[data-theme="vaporwave"] .card { box-shadow: 0 0 12px rgba(0, 255, 255, .1); }
+}
+@media (max-width: 480px) {
+  html[data-theme="vaporwave"] .privacy-toggle { font-size: 12px; letter-spacing: .04em; }
+  html[data-theme="vaporwave"] .quiet { font-size: 12px; letter-spacing: .04em; }
+}

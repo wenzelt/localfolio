@@ -1,0 +1,12 @@
+.env
+.env.*
+private
+.git
+node_modules
+.next
+.venv
+coverage
+.coverage*
+**/__pycache__
+.DS_Store
+*.tsbuildinfo

@@ -1,0 +1,179 @@
+/* Theme three: Pop Art parody. Light only, flat print colour on paper.
+   Everything lives under the data-theme attribute the layout sets from the saved choice, so the other themes are untouched.
+   It re-declares the tokens the components already read, then adds the print devices that make it this theme:
+   thick ink borders, hard offset shadows, halftone dots, a condensed poster face, bands of red, blue and gold, and the golden swoop (src/hair.tsx).
+   Data stays plain: charts, tables and figures keep their usual layout and honest values; the theme reaches them through framing and type only.
+   Independent satire of a public persona's branding. It names no slogan, quotes no one and implies no endorsement. */
+html[data-theme="popart"] {
+  color-scheme: light;
+  --bg: #fff8e7; --surface: #ffffff; --raised: #f3e7c8; --text: #111111; --muted: #4a443a; --border: #111111; --rule: #d8ccae; --control: #111111;
+  --positive: #0b6b2e; --negative: #d71920; --chart: #123a8c; --accent: #d71920; --on-accent: #ffffff;
+  --warning: #ffe08a; --warning-text: #111111; --warning-edge: #d71920;
+  --pop-ink: #111111; --pop-red: #d71920; --pop-blue: #123a8c; --pop-gold: #ffd447; --pop-gold-shadow: #c58a13; --pop-orange: #ff8a24; --pop-focus: #123a8c;
+  --pop-border: 3px solid var(--pop-ink); --pop-outline: 3px;
+  --pop-shadow-sm: 3px 3px 0 var(--pop-ink); --pop-shadow-md: 6px 6px 0 var(--pop-ink); --pop-shadow-lg: 10px 10px 0 var(--pop-ink);
+  --pop-display: var(--font-pop), Impact, "Arial Narrow Bold", sans-serif;
+  --pop-pad: 24px;
+  --radius: 0; --radius-control: 0; --gap: 24px;
+}
+
+html[data-theme="popart"] body { font-size: 16px; }
+
+/* Type: Anton for the placards, Geist for everything that is read. Anton has one weight, so synthesis is off. */
+html[data-theme="popart"] h1 {
+  overflow-wrap: anywhere; font: 400 clamp(36px, 7vw, 64px)/1 var(--pop-display); letter-spacing: .01em; text-transform: uppercase; font-synthesis: none;
+  text-shadow: 3px 3px 0 var(--pop-red);
+}
+html[data-theme="popart"] .brand { color: #fff; font: 400 26px/1 var(--pop-display); letter-spacing: .04em; text-transform: uppercase; font-synthesis: none; }
+html[data-theme="popart"] .brand .mark { width: 40px; height: 28px; }
+html[data-theme="popart"] .hair-mark { --pop-outline: 2px; }
+html[data-theme="popart"] .brand::after { content: "Parody"; margin-left: 4px; padding: 3px 8px; border: 2px solid var(--pop-ink); background: var(--pop-red); color: #fff; font: 700 12px/1.2 var(--sans); letter-spacing: .08em; text-transform: uppercase; transform: rotate(-4deg); }
+html[data-theme="popart"] .heading { margin: 28px 0 44px; }
+html[data-theme="popart"] .heading .muted, html[data-theme="popart"] .meta { color: var(--muted); }
+html[data-theme="popart"] .label, html[data-theme="popart"] .stats dt { color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+html[data-theme="popart"] .value { font: 400 clamp(40px, 7vw, 60px)/1.05 var(--pop-display); letter-spacing: .01em; font-synthesis: none; text-shadow: 3px 3px 0 var(--pop-gold); }
+html[data-theme="popart"] .mask { color: var(--text); letter-spacing: .1em; }
+html[data-theme="popart"] .stats dd { font-size: 22px; font-weight: 700; }
+html[data-theme="popart"] .back { color: var(--text); font-weight: 700; }
+html[data-theme="popart"] .back:hover { color: var(--accent); }
+
+/* Shell: a blue poster band, ink-framed, with cream controls pressed onto it. */
+html[data-theme="popart"] header {
+  top: 8px; margin-top: 12px; padding: 0 12px; background: var(--chart); border: 4px solid var(--pop-ink); box-shadow: var(--pop-shadow-md);
+}
+html[data-theme="popart"] header .privacy-toggle, html[data-theme="popart"] header .theme-picker summary, html[data-theme="popart"] header .quiet {
+  border: var(--pop-border); background: var(--surface); color: var(--text); box-shadow: var(--pop-shadow-sm); font-weight: 700;
+}
+html[data-theme="popart"] header .privacy-toggle[data-hidden="true"] { background: var(--accent); color: var(--on-accent); }
+html[data-theme="popart"] header .privacy-toggle:hover, html[data-theme="popart"] header .theme-picker summary:hover, html[data-theme="popart"] header .theme-picker[open] summary, html[data-theme="popart"] header .quiet:hover { background: var(--raised); color: var(--text); opacity: 1; }
+html[data-theme="popart"] header .privacy-toggle[data-hidden="true"]:hover { background: var(--accent); color: var(--on-accent); }
+html[data-theme="popart"] header .actions { gap: 10px; }
+html[data-theme="popart"] header :focus-visible { outline-color: var(--pop-gold); }
+
+/* Cards are mini posters: a blue title band over a white reading surface, ink border, hard shadow. */
+html[data-theme="popart"] .card {
+  position: relative; padding: var(--pop-pad); border: var(--pop-border); border-radius: 0; background: var(--surface); box-shadow: var(--pop-shadow-md);
+}
+html[data-theme="popart"] .card h2 {
+  margin: calc(var(--pop-pad) * -1) calc(var(--pop-pad) * -1) 16px; padding: 10px var(--pop-pad); border-bottom: var(--pop-border); background: var(--chart); color: #fff;
+  font: 400 clamp(24px, 3vw, 30px)/1.1 var(--pop-display); letter-spacing: .03em; text-transform: uppercase; font-synthesis: none;
+}
+html[data-theme="popart"] .card li a:hover { background: var(--raised); }
+html[data-theme="popart"] code { border: 2px solid var(--pop-ink); background: var(--bg); }
+html[data-theme="popart"] .warning { border: var(--pop-border); border-left-width: 10px; border-left-color: var(--pop-red); box-shadow: var(--pop-shadow-sm); font-weight: 600; }
+html[data-theme="popart"] .footnote { color: var(--muted); }
+
+/* Controls: square, ink-bordered, with a hard shadow they press into. */
+html[data-theme="popart"] button, html[data-theme="popart"] select, html[data-theme="popart"] input:not([type="range"]) {
+  border: var(--pop-border); border-radius: 0; box-shadow: var(--pop-shadow-sm); font-weight: 700;
+}
+html[data-theme="popart"] button:hover { background: var(--raised); }
+html[data-theme="popart"] .login button { background: var(--accent); color: var(--on-accent); }
+html[data-theme="popart"] .login button:hover { background: var(--accent); opacity: 1; }
+html[data-theme="popart"] .login input:focus { border-color: var(--pop-ink); }
+html[data-theme="popart"] .period label { color: var(--text); font-weight: 700; }
+html[data-theme="popart"] .period select { background-color: var(--surface); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='3' stroke-linecap='square'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); }
+html[data-theme="popart"] input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 0; background: var(--pop-ink); }
+html[data-theme="popart"] input[type="range"]::-moz-range-track { height: 6px; border-radius: 0; background: var(--pop-ink); }
+html[data-theme="popart"] input[type="range"]::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -8px; border: var(--pop-border); border-radius: 0; background: var(--accent); }
+html[data-theme="popart"] input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border: var(--pop-border); border-radius: 0; background: var(--accent); }
+html[data-theme="popart"] button:active, html[data-theme="popart"] .privacy-toggle:active, html[data-theme="popart"] .theme-picker summary:active {
+  transform: translate(3px, 3px); box-shadow: 0 0 0 var(--pop-ink);
+}
+html[data-theme="popart"] :focus-visible { outline: 4px solid var(--pop-focus); outline-offset: 3px; }
+
+/* The picker's own menu: a poster panel under the bar, its choices flat inside it. */
+html[data-theme="popart"] .theme-picker form { width: min(288px, 100%); padding: 8px; border: var(--pop-border); background: var(--surface); box-shadow: var(--pop-shadow-md); }
+html[data-theme="popart"] .theme-picker button { border: 0; box-shadow: none; font-weight: 400; }
+html[data-theme="popart"] .theme-picker button:hover, html[data-theme="popart"] .theme-picker button[aria-current="true"] { background: var(--raised); }
+html[data-theme="popart"] .theme-picker button:active { transform: none; }
+html[data-theme="popart"] .swatch { border-radius: 0; outline: 2px solid var(--pop-ink); }
+
+/* Data: ink-framed, otherwise untouched. */
+html[data-theme="popart"] .chart .chart-reveal path:last-child { stroke-width: 3px; }
+html[data-theme="popart"] .chart .area { opacity: .14; }
+html[data-theme="popart"] .heatmap-tile { border: 2px solid var(--pop-ink); border-radius: 0; }
+html[data-theme="popart"] .heatmap-tile .tile-key { border: 2px solid var(--pop-ink); border-radius: 0; }
+html[data-theme="popart"] .country-allocation { height: 18px; border: 2px solid var(--pop-ink); border-radius: 0; }
+html[data-theme="popart"] .country-world path { stroke: var(--pop-ink); stroke-width: .35; }
+
+/* The banner: red poster copy against a blue halftone field holding the one dominant swoop. */
+html[data-theme="popart"] .pop-banner {
+  display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); margin: 28px 0 0; border: 5px solid var(--pop-ink); background: var(--accent); box-shadow: var(--pop-shadow-lg); overflow: hidden; pointer-events: none;
+}
+html[data-theme="popart"] .pop-banner-copy { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 12px; min-width: 0; padding: 24px; }
+html[data-theme="popart"] .pop-kicker { padding: 3px 10px; border: 3px solid var(--pop-ink); background: var(--bg); color: var(--text); font: 700 14px/1.3 var(--sans); letter-spacing: .1em; text-transform: uppercase; transform: rotate(-2deg); }
+html[data-theme="popart"] .pop-shout {
+  overflow-wrap: anywhere; color: #fff; font: 400 clamp(28px, 6.4vw, 80px)/.95 var(--pop-display); letter-spacing: .01em; text-transform: uppercase; font-synthesis: none;
+  -webkit-text-stroke: 6px var(--pop-ink); paint-order: stroke fill; text-shadow: 4px 4px 0 var(--pop-ink);
+}
+html[data-theme="popart"] .pop-shout mark { background: none; color: var(--pop-gold); }
+html[data-theme="popart"] .pop-banner-art {
+  position: relative; display: grid; place-items: center; min-width: 0; min-height: 180px; padding: 20px 16px; border-left: 5px solid var(--pop-ink);
+  background-color: var(--chart); background-image: radial-gradient(circle, rgba(255, 255, 255, .4) 1.6px, transparent 2.2px); background-size: 12px 12px;
+}
+html[data-theme="popart"] .hair-crest { display: grid; justify-items: center; gap: 10px; width: min(100%, 300px); }
+html[data-theme="popart"] .hair-crest svg { width: 100%; height: auto; }
+html[data-theme="popart"] .bubble {
+  position: relative; padding: 6px 14px; border: var(--pop-border); background: var(--bg); box-shadow: var(--pop-shadow-sm); color: var(--text);
+  font: 400 clamp(16px, 2vw, 22px)/1.1 var(--pop-display); letter-spacing: .04em; text-transform: uppercase; font-synthesis: none; text-align: center;
+}
+html[data-theme="popart"] .bubble::before { content: ""; position: absolute; left: 50%; top: -14px; width: 0; height: 0; margin-left: -10px; border: 10px solid transparent; border-top: 0; border-bottom-color: var(--pop-ink); }
+html[data-theme="popart"] .bubble::after { content: ""; position: absolute; left: 50%; top: -9px; width: 0; height: 0; margin-left: -7px; border: 7px solid transparent; border-top: 0; border-bottom-color: var(--bg); }
+html[data-theme="popart"] .hair-cap { position: absolute; left: 12px; bottom: 10px; width: 76px; height: auto; transform: rotate(-8deg); }
+html[data-theme="popart"] .star { position: absolute; width: 30px; height: 30px; }
+html[data-theme="popart"] .star-a { top: 10px; right: 14px; transform: rotate(12deg); }
+html[data-theme="popart"] .star-b { bottom: 14px; right: 22px; width: 22px; height: 22px; transform: rotate(-10deg); }
+
+/* Stickers, the empty-state emblem and the satire note. */
+html[data-theme="popart"] .hair-sticker {
+  position: absolute; top: -24px; right: 12px; z-index: 1; display: grid; place-items: center; align-content: center; gap: 2px; width: 76px; height: 76px; padding: 6px;
+  border: var(--pop-border); border-radius: 50%; background: var(--accent); box-shadow: var(--pop-shadow-sm); color: #fff; transform: rotate(8deg); pointer-events: none; text-align: center;
+}
+html[data-theme="popart"] .hair-sticker svg { width: 40px; height: auto; --pop-outline: 2px; }
+html[data-theme="popart"] .hair-sticker span { font: 400 11px/1 var(--pop-display); letter-spacing: .04em; text-transform: uppercase; font-synthesis: none; }
+html[data-theme="popart"] .hair-empty { display: block; width: 160px; height: auto; margin: 0 0 16px; }
+html[data-theme="popart"] .satire { margin-top: 32px; border: var(--pop-border); background: var(--surface); box-shadow: var(--pop-shadow-sm); }
+html[data-theme="popart"] .hair-pattern { display: block; width: 100%; height: 28px; border-bottom: var(--pop-border); background: var(--bg); --pop-outline: 2px; }
+html[data-theme="popart"] .satire p { margin: 0; padding: 12px 16px; font-size: 14px; font-weight: 600; }
+
+@media (max-width: 640px) {
+  html[data-theme="popart"] {
+    --pop-shadow-sm: 2px 2px 0 var(--pop-ink); --pop-shadow-md: 3px 3px 0 var(--pop-ink); --pop-shadow-lg: 5px 5px 0 var(--pop-ink); --pop-pad: 16px; --gap: 20px;
+  }
+  html[data-theme="popart"] header { top: 6px; margin-top: 8px; padding: 0 8px; }
+  html[data-theme="popart"] .heading { margin: 20px 0 40px; }
+  html[data-theme="popart"] .pop-banner { margin-top: 20px; border-width: 4px; }
+  html[data-theme="popart"] .pop-banner-copy { padding: 16px 12px; }
+  html[data-theme="popart"] .pop-banner-art { min-height: 120px; padding: 12px 8px; border-left-width: 4px; }
+  html[data-theme="popart"] .pop-banner .bubble, html[data-theme="popart"] .pop-banner .hair-cap, html[data-theme="popart"] .pop-banner .star { display: none; }
+  html[data-theme="popart"] .pop-shout { -webkit-text-stroke: 4px var(--pop-ink); text-shadow: 2px 2px 0 var(--pop-ink); }
+}
+/* The bar needs the room: the brand keeps its emblem and drops its caption (the satire note stays at the foot of the page). */
+@media (max-width: 480px) {
+  html[data-theme="popart"] .brand::after { display: none; }
+  html[data-theme="popart"] .brand span { display: none; }
+  html[data-theme="popart"] header .actions { gap: 6px; }
+  html[data-theme="popart"] .hair-sticker { display: none; }
+  html[data-theme="popart"] .heading { margin-bottom: 24px; }
+  html[data-theme="popart"] .pop-shout { font-size: 22px; }
+}
+@media (min-width: 361px) and (max-width: 480px) {
+  html[data-theme="popart"] header .quiet { white-space: nowrap; }
+}
+@media (max-width: 360px) {
+  html[data-theme="popart"] header .privacy-toggle { padding: 0 8px; gap: 4px; }
+  html[data-theme="popart"] header .quiet { padding: 8px 6px; }
+}
+
+/* Props respond like printed stickers: a short tilt and a short pop, and only for people who have not asked for less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-theme="popart"] .hair-sticker { transition: transform 120ms ease-out; }
+  html[data-theme="popart"] .card:hover .hair-sticker { transform: rotate(-4deg); }
+  html[data-theme="popart"] .bubble { animation: pop-in 180ms ease-out both; }
+  html[data-theme="popart"] button, html[data-theme="popart"] .privacy-toggle, html[data-theme="popart"] .theme-picker summary { transition: transform 80ms ease-out, box-shadow 80ms ease-out; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(.85); }
+  to { opacity: 1; transform: scale(1); }
+}

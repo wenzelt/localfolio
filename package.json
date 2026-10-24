@@ -1,0 +1,39 @@
+{
+  "name": "localfolio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run",
+    "test:e2e": "node --env-file-if-exists=.env node_modules/@playwright/test/cli.js test",
+    "test:coverage": "node --env-file-if-exists=.env node_modules/vitest/vitest.mjs run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "portfolio:backup": "node scripts/portfolio-transfer.mjs backup",
+    "portfolio:restore": "node scripts/portfolio-transfer.mjs restore",
+    "import:ghostfolio": "tsx --env-file-if-exists=.env src/cli/import.ts",
+    "ledger:add": "tsx --env-file-if-exists=.env src/cli/ledger.ts",
+    "migrate:snapshots": "tsx --env-file-if-exists=.env src/cli/migrate.ts",
+    "report:valuation": "tsx --env-file-if-exists=.env src/cli/valuation.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "next": "^16.4.2",
+    "postgres": "^3.4.9",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}
