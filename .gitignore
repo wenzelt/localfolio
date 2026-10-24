@@ -1,0 +1,16 @@
+private/
+node_modules/
+coverage/
+test-results/
+playwright-report/
+.next/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+.coverage*
+.DS_Store
+.taste-skill/
+.claude/design/*.html

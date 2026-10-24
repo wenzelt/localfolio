@@ -1,0 +1,87 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: portfolio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: portfolio
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - portfolio-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portfolio -d portfolio"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+  app:
+    build: .
+    profiles: ["app"]
+    restart: unless-stopped
+    ports:
+      - "${APP_BIND_IP:-127.0.0.1}:3000:3000"
+    environment:
+      APP_PASSWORD: ${APP_PASSWORD:-}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: portfolio
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      PGDATABASE: portfolio
+      DATABASE_URL: ""
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      db:
+        condition: service_healthy
+  worker:
+    build: ./worker
+    profiles: ["worker"]
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: portfolio
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      PGDATABASE: portfolio
+      DATABASE_URL: ""
+    depends_on:
+      db:
+        condition: service_healthy
+  scheduler:
+    build: ./worker
+    profiles: ["scheduler"]
+    restart: unless-stopped
+    entrypoint: ["python", "-m", "worker.refresh"]
+    command: ["--every", "${REFRESH_INTERVAL_SECONDS:-86400}"]
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: portfolio
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      PGDATABASE: portfolio
+      DATABASE_URL: ""
+    depends_on:
+      db:
+        condition: service_healthy
+  live:
+    build: ./worker
+    profiles: ["live"]
+    restart: unless-stopped
+    entrypoint: ["python", "-m", "worker.refresh"]
+    command: ["--intraday", "--every", "${LIVE_REFRESH_INTERVAL_SECONDS:-300}"]
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: portfolio
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      PGDATABASE: portfolio
+      DATABASE_URL: ""
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  portfolio-db:
