@@ -91,6 +91,12 @@ docker compose --profile app up -d --build
 
 Back up first (below). Tables are created on demand with `CREATE TABLE IF NOT EXISTS`, so there are no separate migration steps in this version. Check `docker compose ps` and `/api/health` afterwards.
 
+## Browser and iOS home screen icons
+
+Localfolio includes a browser favicon and an opaque 180×180 iOS home screen icon based on the dashboard's chart mark. Next.js serves `app/favicon.ico`, `app/icon.svg` and `app/apple-icon.png` and adds their icon links to every page, including sign-in. These assets are included in the existing Docker build.
+
+After pulling this change, rebuild the hosted app with `docker compose --profile app up -d --build`. On iPhone or iPad, remove any old Localfolio home screen shortcut, open the hosted site in Safari, then choose **Share → Add to Home Screen** again to pick up the icon. Browsers may cache the old favicon; reload the site if it has not updated yet.
+
 ## Reverse proxy and TLS
 
 The dashboard speaks plain HTTP and binds to `127.0.0.1` by default (`APP_BIND_IP`). To reach it from other devices, put a TLS-terminating reverse proxy (Caddy, nginx, Traefik) in front and keep the app on loopback or a private network. Do not expose port 3000 or the database port directly to the internet. The session cookie is `HttpOnly` and `SameSite=Strict`, and gets the `Secure` flag when the request arrives over HTTPS, so make sure the proxy forwards the original `https` protocol.
