@@ -10,7 +10,7 @@ import type { HistoricalPrice } from './price-history'
 
 export type DailyMovementItem = {
   accountId: string; accountName: string; symbol: string
-  value: string | null; changePercent: string | null; observedOn: string | null; previousOn: string | null
+  value: string | null; change: string | null; changePercent: string | null; observedOn: string | null; previousOn: string | null
 }
 type MovementTrade = { accountId: string; symbol: string; type: 'BUY' | 'SELL'; quantity: string; date: string }
 
@@ -52,7 +52,7 @@ export function dailyMovement(
       const identity = { accountId: account.id, accountName: account.name, symbol }
       const bars = barsBySymbol.get(symbol) ?? []
       const newest = latest(bars, asOf)
-      if (newest === undefined) return [{ ...identity, value: null, changePercent: null, observedOn: null, previousOn: null }]
+      if (newest === undefined) return [{ ...identity, value: null, change: null, changePercent: null, observedOn: null, previousOn: null }]
       const close = decimalToFraction(newest.close)
       const rate = newest.currency === 'EUR' ? decimalToFraction('1') : latest(rates, asOf)?.eurPerUsd
       const previous = bars[bars.indexOf(newest) - 1]
@@ -61,6 +61,8 @@ export function dailyMovement(
       return [{
         ...identity,
         value: rate === undefined ? null : formatFraction(multiply(multiply(quantity, close), rate)),
+        // The session's gain in EUR: held quantity times the price move, at the same rate as the value.
+        change: rate === undefined || base === undefined || base.numerator === 0n ? null : formatFraction(multiply(multiply(quantity, subtract(close, base)), rate)),
         changePercent: base === undefined || base.numerator === 0n ? null : formatFraction(multiply(divide(subtract(close, base), base), hundred)),
         observedOn: newest.observedOn,
         previousOn: reference?.observedOn ?? null,
