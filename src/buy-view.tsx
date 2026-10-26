@@ -26,7 +26,7 @@ export function BuyView({ accounts, today, account, symbol }: { accounts: Accoun
       <section className="card buy">
         <h1>Add a buy</h1>
         {accounts.length === 0
-          ? <p>No account yet. Create one first with <code>npm run ledger:add -- account --name "Broker" --currency EUR</code>, then come back here.</p>
+          ? <p>No account yet. <a href="/accounts">Add an account</a> first, then come back here.</p>
           : <BuyForm accounts={accounts} today={today} account={account} symbol={symbol} />}
       </section>
     </main>
