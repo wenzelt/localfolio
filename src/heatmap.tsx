@@ -3,13 +3,16 @@ import type { PerformancePeriod } from './performance-period'
 import { formatEur, formatPercent, tone } from './dashboard-view'
 
 type Movement = {
-  accountId: string; accountName: string; symbol: string; name?: string | null; kind?: 'cash'; value: string | null
+  accountId: string; accountName: string; symbol: string; name?: string | null; kind?: 'cash'; value: string | null; change?: string | null
   changePercent: string | null; observedOn: string | null; previousOn: string | null
 }
 type Tile = { item: Movement; x: number; y: number; width: number; height: number }
 
 // A row without a detail page (cash) is not a link.
 const Row = ({ href, children }: { href?: string; children: ReactNode }) => href === undefined ? <div>{children}</div> : <a href={href}>{children}</a>
+
+// An explicit plus sign on gains, so the amount reads as a movement rather than a balance.
+const formatSigned = (change: string) => `${tone(change) === 'positive' ? '+' : ''}${formatEur(change)}`
 
 export function movementIntensity(change: string | null) {
   return change === null ? 0 : Math.min(Math.abs(Number(change)) / 5, 1)
@@ -52,7 +55,7 @@ export function DailyHeatmap({ items, period, hidden = false }: { items: Movemen
       <p className="heatmap-legend"><span className="negative">−5% or lower</span><span>0% / unavailable: neutral</span><span className="positive">+5% or higher</span></p>
       <div className="movement-details"><h3>All positions and session dates</h3><ul>{[...tileLayout(items).map((tile) => tile.item), ...items.filter((item) => !(Number(item.value) > 0))].map((item, index) => <li key={`${item.accountId}-${item.symbol}`}><Row href={item.kind === 'cash' ? undefined : href(item)}>
         <span><span className="position-key">{index + 1}</span> <strong>{displayName(item)}</strong>{item.kind !== 'cash' && <><small>{item.name ? `${item.symbol} · ` : ''}{item.accountName}</small><small>{item.observedOn ?? 'No price date'}{item.previousOn && ` versus ${item.previousOn}`}</small></>}</span>
-        <span className={tone(item.changePercent)}>{item.changePercent === null ? 'Unavailable' : formatPercent(item.changePercent)}{!hidden && <small>{item.value === null ? 'Value unavailable' : formatEur(item.value)}</small>}</span>
+        <span className={tone(item.changePercent)}>{item.changePercent === null ? 'Unavailable' : formatPercent(item.changePercent)}{!hidden && <small>{item.value === null ? 'Value unavailable' : formatEur(item.value)}</small>}{!hidden && item.change != null && <small>{formatSigned(item.change)}</small>}</span>
       </Row></li>)}</ul></div>
     </>}
   </section>
