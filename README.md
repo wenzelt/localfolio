@@ -44,7 +44,9 @@ Requirements: Docker with Compose. Node.js 26 is only needed to run the host-sid
 
    If you imported before the normalized ledger existed, move those stored snapshots into the new tables once with `npm run migrate:snapshots`. It is safe to repeat and leaves the old snapshot rows untouched.
 
-4. Optionally record accounts and transactions by hand instead of (or alongside) importing:
+4. Create accounts with **Manage accounts** on the dashboard (`/accounts`): enter a name, EUR or USD currency, and an optional comment. Exact duplicate names are rejected. The page lists account activity and lets you permanently delete an account and all its transactions after typing its exact name. Deletion cannot be undone; back up first if needed.
+
+   Alternatively, record accounts and transactions from the command line instead of (or alongside) importing:
 
    ```sh
    npm run ledger:add -- account --name "Broker" --currency EUR

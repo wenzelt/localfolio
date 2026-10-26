@@ -30,7 +30,7 @@ describe('the accounts page', () => {
 
   it('offers a delete button per account, named after the account', () => {
     const html = renderToStaticMarkup(<AccountsView accounts={accounts} />)
-    expect(html.match(/Delete account/g)).toHaveLength(3)
+    expect(html.match(/>Delete account</g)).toHaveLength(3)
     expect(html).toContain('aria-label="Delete account Consors"')
   })
 

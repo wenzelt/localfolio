@@ -278,3 +278,20 @@ a.quiet { display: inline-flex; align-items: center; min-height: 44px; border-ra
 .preview tbody tr:last-child td { border-bottom: 0; }
 .preview .num { text-align: right; }
 .preview .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Accounts: the same narrow card as the buy page, a plain list with a delete control per row, and a compact add form. */
+.accounts { max-width: 720px; }
+.accounts h2 { margin: 24px 0 12px; font-size: 1rem; }
+.account-list { display: grid; gap: 4px; margin: 12px 0 0; padding: 0; list-style: none; }
+.account-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; min-height: 44px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.account-list small { display: block; color: var(--muted); font-size: 0.875rem; }
+.delete-account { flex: 1 1 100%; }
+.delete-account form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; }
+.delete-account .error, .account-form .error { margin: 0; color: var(--negative); }
+.account-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.account-form .wide, .account-form button, .account-form p { grid-column: 1 / -1; }
+.account-form .field { display: flex; flex-direction: column; gap: 6px; }
+.account-form label { color: var(--muted); font-size: 0.875rem; }
+.account-form button { justify-self: start; }
+.account-form .saved { margin: 0; color: var(--positive); }
+@media (max-width: 560px) { .account-form { grid-template-columns: minmax(0, 1fr); } }

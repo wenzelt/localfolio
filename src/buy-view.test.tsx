@@ -44,12 +44,7 @@ describe('the add buy page', () => {
   it('explains how to create an account when there is none', () => {
     const html = renderToStaticMarkup(<BuyView accounts={[]} today="2026-03-02" />)
     expect(html).toContain('No account yet')
-    expect(html).toContain('ledger:add -- account')
+    expect(html).toMatch(/<a[^>]*href="\/accounts"[^>]*>Add an account<\/a>/)
     expect(html).not.toContain('role="combobox"')
-  })
-
-  it('points to the accounts page when there is no account yet', () => {
-    const html = renderToStaticMarkup(<BuyView accounts={[]} today="2026-03-02" />)
-    expect(html).toMatch(/<a[^>]*href="\/accounts"[^>]*>/)
   })
 })
