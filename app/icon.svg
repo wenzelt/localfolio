@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
+  <title>Localfolio</title>
   <rect width="32" height="32" fill="#f2f4f7"/>
   <rect x="5.5" y="5.5" width="21" height="21" rx="6" stroke="#0f141a" stroke-width="1.5"/>
   <path d="M10 20l4-4.5 3 2.5 5-6" stroke="#1d5fbf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
