@@ -117,6 +117,11 @@ describe('dashboard rendering', () => {
     expect(renderToStaticMarkup(<Dashboard report={null} />)).not.toContain('data-live-refresh')
   })
 
+  it('links to the accounts page from the overview, also when nothing is imported', () => {
+    expect(renderToStaticMarkup(<Dashboard report={report} />)).toMatch(/<a[^>]*href="\/accounts"[^>]*>Manage accounts<\/a>/)
+    expect(renderToStaticMarkup(<Dashboard report={null} />)).toMatch(/<a[^>]*href="\/accounts"[^>]*>Manage accounts<\/a>/)
+  })
+
   it('names the next step when nothing is imported', () => {
     const html = renderToStaticMarkup(<Dashboard report={null} />)
     expect(html).toContain('npm run import:ghostfolio')
