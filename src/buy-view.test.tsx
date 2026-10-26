@@ -47,4 +47,9 @@ describe('the add buy page', () => {
     expect(html).toContain('ledger:add -- account')
     expect(html).not.toContain('role="combobox"')
   })
+
+  it('points to the accounts page when there is no account yet', () => {
+    const html = renderToStaticMarkup(<BuyView accounts={[]} today="2026-03-02" />)
+    expect(html).toMatch(/<a[^>]*href="\/accounts"[^>]*>/)
+  })
 })
