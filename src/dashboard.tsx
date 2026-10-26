@@ -52,7 +52,7 @@ export function Dashboard({ report, hidden = false, theme = 'ledger', position, 
   const pop = theme === 'popart'
   return <main>
     <header><a href={hidden ? '/?hide=1' : '/'} className="brand">{pop ? <HairSwoop className="mark hair-mark" /> : <Mark />}<span>Localfolio</span></a><div className="actions"><a className="quiet add-buy" href="/buy">Add buy</a><PrivacyToggle href={`/?${scope}period=${period}${hidden ? '&hide=0' : '&hide=1'}`} hidden={hidden} /><ThemePicker theme={theme} /><form action="/logout" method="post"><button type="submit" className="quiet">Log out</button></form></div></header>
-    <p><a className="quiet" href="/import">Import positions</a></p>
+    <p><a className="quiet" href="/import">Import positions</a> · <a className="quiet" href="/accounts">Manage accounts</a></p>
     {!report ? <section className="card">{pop && <HairSwoop className="hair-empty" />}<h1>No portfolio imported</h1><p>Import your Ghostfolio export, or record transactions by hand, then refresh market data.</p>
       <p><code>npm run import:ghostfolio -- &lt;file&gt;</code></p><p><code>npm run ledger:add -- account --name &lt;name&gt; --currency EUR</code></p></section> : <>
       {pop && <HairBanner />}

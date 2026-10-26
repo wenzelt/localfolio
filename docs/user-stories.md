@@ -72,6 +72,8 @@ This project is a self-hosted, Docker-deployed portfolio tracker inspired by Gho
 ### Acceptance Criteria
 
 - An account stores its name, EUR or USD account currency, optional comment, and excluded status.
+- The signed-in owner can list accounts and add an account through **Manage accounts** on the dashboard; exact duplicate names are rejected.
+- Deletion requires typing the exact account name and permanently removes the account, its transactions, and associated balances/tag links atomically; cancelling leaves it unchanged.
 - Account balances and dated historical balance snapshots can be retained.
 - A user can view only their own accounts.
 - The design can preserve Ghostfolio account IDs for idempotent imports.
