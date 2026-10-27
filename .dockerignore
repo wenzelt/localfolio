@@ -3,6 +3,9 @@
 private
 .git
 .claude
+*.dump
+**/*.dump
+DEPLOY-HANDOFF.md
 node_modules
 .next
 .venv
