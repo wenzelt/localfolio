@@ -38,13 +38,17 @@ Requirements: Docker with Compose. Node.js 26 is only needed to run the host-sid
    npm run import:ghostfolio -- private/ghostfolio-export.json
    ```
 
+   Once the app is running you can instead sign in and upload the same file at `/import/ghostfolio`.
+
    To try the app first, import the sample at [docs/examples/ghostfolio-export.sample.json](docs/examples/ghostfolio-export.sample.json) instead. If you have no Ghostfolio data, skip to step 4 (manual entry) or use **Import positions** below.
 
    It prints `created`, `skipped` and `rejected` counts. Re-importing an identical export creates nothing, and an invalid export is rejected without saving anything. Details: [docs/local-import.md](docs/local-import.md).
 
    If you imported before the normalized ledger existed, move those stored snapshots into the new tables once with `npm run migrate:snapshots`. It is safe to repeat and leaves the old snapshot rows untouched.
 
-4. Optionally record accounts and transactions by hand instead of (or alongside) importing:
+4. Create accounts with **Manage accounts** on the dashboard (`/accounts`): enter a name, EUR or USD currency, and an optional comment. Exact duplicate names are rejected. The page lists account activity and lets you permanently delete an account and all its transactions after typing its exact name. Deletion cannot be undone; back up first if needed.
+
+   Alternatively, record accounts and transactions from the command line instead of (or alongside) importing:
 
    ```sh
    npm run ledger:add -- account --name "Broker" --currency EUR

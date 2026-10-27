@@ -14,7 +14,7 @@ const run = (trades: Trade[], prices: ReturnType<typeof bar>[], rates: { date: s
 describe('daily movement', () => {
   it('values the position and reports the percent change against the previous bar', () => {
     expect(run([buy('a1', 'X', '1.5')], [bar('X', '1980-01-04', '10'), bar('X', '1980-01-07', '11')])).toEqual([
-      { accountId: 'a1', accountName: 'Synthetic one', symbol: 'X', value: '16.5', changePercent: '10', observedOn: '1980-01-07', previousOn: '1980-01-04' },
+      { accountId: 'a1', accountName: 'Synthetic one', symbol: 'X', value: '16.5', change: '1.5', changePercent: '10', observedOn: '1980-01-07', previousOn: '1980-01-04' },
     ])
   })
 
@@ -22,8 +22,8 @@ describe('daily movement', () => {
     const [flat, loss] = run([buy('a1', 'L', '1'), buy('a1', 'F', '1')], [
       bar('L', '1980-01-04', '8'), bar('L', '1980-01-07', '6'), bar('F', '1980-01-04', '5'), bar('F', '1980-01-07', '5'),
     ])
-    expect(loss).toMatchObject({ symbol: 'L', changePercent: '-25' })
-    expect(flat).toMatchObject({ symbol: 'F', changePercent: '0', value: '5' })
+    expect(loss).toMatchObject({ symbol: 'L', changePercent: '-25', change: '-2' })
+    expect(flat).toMatchObject({ symbol: 'F', changePercent: '0', value: '5', change: '0' })
   })
 
   it('compares against the previous available bar across a weekend or holiday', () => {
@@ -64,20 +64,20 @@ describe('daily movement', () => {
     const prices = [bar('U', '1980-01-04', '10', 'USD'), bar('U', '1980-01-07', '20', 'USD')]
     const rates = [{ date: '1980-01-02', eurPerUsd: '0.5' }, { date: '1980-01-05', eurPerUsd: '0.9' }, { date: '1980-01-08', eurPerUsd: '2' }]
     // The percent change stays in the quote currency, so FX does not leak into it.
-    expect(run([buy('a1', 'U', '1')], prices, rates)[0]).toMatchObject({ value: '18', changePercent: '100' })
+    expect(run([buy('a1', 'U', '1')], prices, rates)[0]).toMatchObject({ value: '18', change: '9', changePercent: '100' })
   })
 
   it('leaves the value empty but keeps the change when the FX rate is missing or stale', () => {
     const prices = [bar('U', '1980-01-04', '10', 'USD'), bar('U', '1980-01-07', '20', 'USD')]
-    const expected = { value: null, changePercent: '100', observedOn: '1980-01-07', previousOn: '1980-01-04' }
+    const expected = { value: null, change: null, changePercent: '100', observedOn: '1980-01-07', previousOn: '1980-01-04' }
     expect(run([buy('a1', 'U', '1')], prices, [])[0]).toMatchObject(expected)
     expect(run([buy('a1', 'U', '1')], prices, [{ date: '1979-12-29', eurPerUsd: '0.9' }])[0]).toMatchObject(expected)
-    expect(run([buy('a1', 'U', '1')], prices, [{ date: '1979-12-31', eurPerUsd: '0.9' }])[0]).toMatchObject({ value: '18' })
+    expect(run([buy('a1', 'U', '1')], prices, [{ date: '1979-12-31', eurPerUsd: '0.9' }])[0]).toMatchObject({ value: '18', change: '9' })
   })
 
   it('never reports a false zero when the reference bar is missing', () => {
     expect(run([buy('a1', 'X', '1')], [bar('X', '1980-01-07', '11')])[0]).toEqual(
-      { accountId: 'a1', accountName: 'Synthetic one', symbol: 'X', value: '11', changePercent: null, observedOn: '1980-01-07', previousOn: null },
+      { accountId: 'a1', accountName: 'Synthetic one', symbol: 'X', value: '11', change: null, changePercent: null, observedOn: '1980-01-07', previousOn: null },
     )
     expect(run([buy('a1', 'X', '1')], [bar('X', '1980-01-07', '11'), bar('X', '1979-12-01', '5')])[0]).toMatchObject({ changePercent: null, previousOn: null })
     expect(run([buy('a1', 'X', '1')], [bar('X', '1980-01-04', '0'), bar('X', '1980-01-07', '11')])[0]).toMatchObject({ value: '11', changePercent: null })
@@ -85,7 +85,7 @@ describe('daily movement', () => {
   })
 
   it('reports nothing for a symbol with no fresh price', () => {
-    const empty = { value: null, changePercent: null, observedOn: null, previousOn: null }
+    const empty = { value: null, change: null, changePercent: null, observedOn: null, previousOn: null }
     expect(run([buy('a1', 'X', '1')], [])[0]).toMatchObject(empty)
     expect(run([buy('a1', 'X', '1')], [bar('X', '1979-12-29', '10'), bar('X', '1979-12-28', '9')])[0]).toMatchObject(empty)
   })

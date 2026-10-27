@@ -13,6 +13,8 @@ export function dailySummary(items: { value: string | null; changePercent: strin
   let change = zero
   let previousTotal = zero
   let date: string | null = null
+  let oldestDate: string | null = null
+  const counted: string[] = []
   let excluded = 0
 
   for (const item of items) {
@@ -29,7 +31,11 @@ export function dailySummary(items: { value: string | null; changePercent: strin
     const previous = divide(value, factor)
     change = add(change, subtract(value, previous))
     previousTotal = add(previousTotal, previous)
-    if (item.observedOn !== null && (date === null || item.observedOn > date)) date = item.observedOn
+    if (item.observedOn !== null) {
+      counted.push(item.observedOn)
+      if (date === null || item.observedOn > date) date = item.observedOn
+      if (oldestDate === null || item.observedOn < oldestDate) oldestDate = item.observedOn
+    }
   }
 
   return {
@@ -37,5 +43,8 @@ export function dailySummary(items: { value: string | null; changePercent: strin
     changePercent: previousTotal.numerator <= 0n ? null : formatFraction(multiply(divide(change, previousTotal), hundred)),
     date,
     excluded,
+    // Counted positions whose latest session is older than the dated one, e.g. US holdings before the Monday open.
+    staleCount: counted.filter((observedOn) => observedOn !== date).length,
+    oldestDate,
   }
 }

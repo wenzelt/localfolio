@@ -32,6 +32,15 @@ describe('weighted tile layout', () => {
 })
 
 describe('daily heatmap', () => {
+  it('shows the EUR change of every position next to its percentage', () => {
+    const html = renderToStaticMarkup(<DailyHeatmap items={[{ ...items[0], change: '5.88' }, { ...items[1], change: '-1.01' }]} period="MAX" />)
+    expect(html).toMatch(/\+2\.00%<small>€300\.00<\/small><small[^>]*>\+€5\.88<\/small>/)
+    expect(html).toMatch(/-1\.00%<small>€100\.00<\/small><small[^>]*>-€1\.01<\/small>/)
+  })
+  it('hides the EUR change in hide mode and shows nothing when it is unavailable', () => {
+    expect(renderToStaticMarkup(<DailyHeatmap items={[{ ...items[0], change: '5.88' }]} period="MAX" hidden />)).not.toContain('5.88')
+    expect(renderToStaticMarkup(<DailyHeatmap items={[{ ...items[0], change: null }]} period="MAX" />)).not.toContain('€5.88')
+  })
   it('links every position, names its account and session, and explains size and colour', () => {
     const html = renderToStaticMarkup(<DailyHeatmap items={items} period="MAX" hidden={false} />)
     expect(html).toContain('Today’s movement')
