@@ -137,7 +137,7 @@ This project is a self-hosted, Docker-deployed portfolio tracker inspired by Gho
 - Re-importing a fixture is idempotent.
 - Unsupported export version, invalid numeric value, unknown currency, bad activity type, and missing account references fail atomically.
 
-> **Status:** CLI import is implemented and tested for validation, account/activity field retention, exact decimals, tag assignments, idempotency, and rollback. Schema rejection tests check that all five imported tables remain unchanged for each invalid case above. The created/skipped/rejected counts are printed by the CLI. **Open acceptance gap:** no browser upload UI or browser import-result display is implemented; the UI criterion is not closed. See [release validation](releases/v0.1.0.md).
+> **Status:** CLI import is implemented and tested for validation, account/activity field retention, exact decimals, tag assignments, idempotency, and rollback. Schema rejection tests check that all five imported tables remain unchanged for each invalid case above. The created/skipped/rejected counts are printed by the CLI. The signed-in owner can also upload the export at `/import/ghostfolio` (linked from the empty overview and from **Import positions**). The page validates the whole file first, then reports created, skipped and rejected counts, and shows a clear error with nothing saved for a malformed file. Covered by `src/ghostfolio-import.test.ts`, `src/ghostfolio-import-view.test.tsx` and `e2e/ghostfolio-import.e2e.ts`, so the UI criterion is closed. See [release validation](releases/v0.1.0.md).
 
 ---
 
