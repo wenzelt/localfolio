@@ -37,6 +37,10 @@ describe('the add buy page', () => {
     expect(html).toContain('<option value="" selected="">Choose an account</option>')
   })
 
+  it('keeps the header inside main so it shares the page width and gutters', () => {
+    expect(renderToStaticMarkup(<BuyView accounts={accounts} today="2026-03-02" />)).toMatch(/^<main><header>.*<\/header><section class="card buy">.*<\/section><\/main>$/)
+  })
+
   it('links back to the portfolio', () => {
     expect(renderToStaticMarkup(<BuyView accounts={accounts} today="2026-03-02" />)).toContain('href="/"')
   })

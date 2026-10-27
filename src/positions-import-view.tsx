@@ -46,29 +46,48 @@ export function PositionsImportView() {
     }
   }
 
-  return <>
-    <header><a className="brand" href="/">Portfolio</a><a href="/">Back to portfolio</a></header>
-    <main><section className="card">
+  return <main>
+    <header><a href="/" className="brand"><span>Localfolio</span></a><div className="actions"><a className="back" href="/">Back to portfolio</a></div></header>
+    <section className="card import">
       <h1>Import positions</h1>
       <p>Upload current holdings as opening buys. This adds to existing positions; it does not replace them or recreate earlier performance. No cash is moved.</p>
-      <p>Use Yahoo tickers and plain decimal numbers with a dot. Only EUR and USD are supported. Dates use YYYY-MM-DD. Maximum 1000 rows and 1 MiB.</p>
-      <p>Accounts match by exact name; missing accounts are created. A new account must use one currency. Identical buys are skipped, including repeat uploads. Symbols are not checked against Yahoo during import; verify tickers before confirming.</p>
-      <p><a href={`data:text/csv;charset=utf-8,${encodeURIComponent(positionsTemplate)}`} download="positions-template.csv">Download CSV template</a></p>
-      <form key={newFile} onSubmit={(event) => { event.preventDefault(); void run('preview') }}>
-        <label htmlFor="positions-file">Positions CSV</label>{' '}
-        <input ref={fileInput} id="positions-file" type="file" accept=".csv,text/csv" disabled={busy} onChange={() => { generation.current++; setRows([]); setCsv(''); setError(''); setSaved('') }} />{' '}
-        <button type="submit" disabled={busy}>{busy ? 'Working…' : 'Preview import'}</button>
+      <ul className="rules">
+        <li>Use Yahoo tickers and plain decimal numbers with a dot. Only EUR and USD are supported. Dates use YYYY-MM-DD. Maximum 1000 rows and 1 MiB.</li>
+        <li>Accounts match by exact name; missing accounts are created. A new account must use one currency.</li>
+        <li>Identical buys are skipped, including repeat uploads.</li>
+        <li>Symbols are not checked against Yahoo during import; verify tickers before confirming.</li>
+      </ul>
+      <p><a className="quiet" href={`data:text/csv;charset=utf-8,${encodeURIComponent(positionsTemplate)}`} download="positions-template.csv">Download CSV template</a></p>
+      <form className="import-form" key={newFile} onSubmit={(event) => { event.preventDefault(); void run('preview') }}>
+        <div className="field">
+          <label htmlFor="positions-file">Positions CSV</label>
+          <input ref={fileInput} id="positions-file" type="file" accept=".csv,text/csv" disabled={busy} onChange={() => { generation.current++; setRows([]); setCsv(''); setError(''); setSaved('') }} />
+        </div>
+        <button type="submit" className="primary" disabled={busy}>{busy ? 'Working…' : 'Preview import'}</button>
       </form>
-      {error && <p role="alert">{error}</p>}
-      {saved && <p role="status">{saved}</p>}
-      {rows.length > 0 && <section aria-label="Import preview">
-        <h2>Preview: {rows.length} positions</h2>
-        <div style={{ overflowX: 'auto' }}><table><thead><tr><th>Row</th><th>Account</th><th>Symbol</th><th>Quantity</th><th>Average price</th><th>Currency</th><th>Date</th></tr></thead>
-          <tbody>{rows.map((row) => <tr key={row.line}><td>{row.line}</td><td>{row.account}</td><td>{row.symbol}</td><td>{row.quantity}</td><td>{row.averagePrice}</td><td>{row.currency}</td><td>{row.date}</td></tr>)}</tbody></table></div>
-        <p>Confirm to add these opening buys. Existing holdings remain; identical buys are skipped. Invalid imports save nothing.</p>
-        <button type="button" disabled={busy} onClick={() => void run('import')}>Confirm import</button>{' '}
-        <button type="button" disabled={busy} onClick={() => { generation.current++; setRows([]); setCsv(''); setNewFile((value) => value + 1) }}>Cancel</button>
-      </section>}
-    </section></main>
-  </>
+      {error && <p className="error" role="alert">{error}</p>}
+      {saved && <p className="saved" role="status">{saved}</p>}
+      {rows.length > 0 && <ImportPreview rows={rows} busy={busy} onConfirm={() => void run('import')} onCancel={() => { generation.current++; setRows([]); setCsv(''); setNewFile((value) => value + 1) }} />}
+    </section>
+  </main>
+}
+
+const columns: { label: string; key: keyof PositionRow; numeric?: boolean }[] = [
+  { label: 'Row', key: 'line', numeric: true }, { label: 'Account', key: 'account' }, { label: 'Symbol', key: 'symbol' },
+  { label: 'Quantity', key: 'quantity', numeric: true }, { label: 'Average price', key: 'averagePrice', numeric: true }, { label: 'Currency', key: 'currency' }, { label: 'Date', key: 'date' },
+]
+
+export function ImportPreview({ rows, busy, onConfirm, onCancel }: { rows: PositionRow[]; busy: boolean; onConfirm: () => void; onCancel: () => void }) {
+  return <section className="import-preview" aria-label="Import preview">
+    <h2>Preview: {rows.length} positions</h2>
+    <div className="table-scroll"><table className="import-table">
+      <thead><tr>{columns.map(({ label, numeric }) => <th key={label} className={numeric ? 'num' : undefined}>{label}</th>)}</tr></thead>
+      <tbody>{rows.map((row) => <tr key={row.line}>{columns.map(({ label, key, numeric }) => <td key={label} className={numeric ? 'num' : undefined}>{row[key]}</td>)}</tr>)}</tbody>
+    </table></div>
+    <p>Confirm to add these opening buys. Existing holdings remain; identical buys are skipped. Invalid imports save nothing.</p>
+    <div className="import-actions">
+      <button type="button" className="primary" disabled={busy} onClick={onConfirm}>Confirm import</button>
+      <button type="button" className="quiet" disabled={busy} onClick={onCancel}>Cancel</button>
+    </div>
+  </section>
 }
