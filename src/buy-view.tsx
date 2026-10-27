@@ -20,17 +20,15 @@ const messageOf = (body: unknown, fallback: string) =>
   typeof body === 'object' && body !== null && typeof (body as { error?: unknown }).error === 'string' ? (body as { error: string }).error : fallback
 
 export function BuyView({ accounts, today, account, symbol }: { accounts: Account[]; today: string; account?: string; symbol?: string }) {
-  return <>
+  return <main>
     <header><a href="/" className="brand"><span>Localfolio</span></a><div className="actions"><a className="back" href="/">Back to portfolio</a></div></header>
-    <main>
-      <section className="card buy">
-        <h1>Add a buy</h1>
-        {accounts.length === 0
-          ? <p>No account yet. Create one first with <code>npm run ledger:add -- account --name "Broker" --currency EUR</code>, then come back here.</p>
-          : <BuyForm accounts={accounts} today={today} account={account} symbol={symbol} />}
-      </section>
-    </main>
-  </>
+    <section className="card buy">
+      <h1>Add a buy</h1>
+      {accounts.length === 0
+        ? <p>No account yet. Create one first with <code>npm run ledger:add -- account --name "Broker" --currency EUR</code>, then come back here.</p>
+        : <BuyForm accounts={accounts} today={today} account={account} symbol={symbol} />}
+    </section>
+  </main>
 }
 
 function BuyForm({ accounts, today, account, symbol }: { accounts: Account[]; today: string; account?: string; symbol?: string }) {
