@@ -59,7 +59,7 @@ export function PositionsImportView() {
         <li>Identical buys are skipped, including repeat uploads.</li>
         <li>Symbols are not checked against Yahoo during import; verify tickers before confirming.</li>
       </ul>
-      <p><a className="quiet" href={`data:text/csv;charset=utf-8,${encodeURIComponent(positionsTemplate)}`} download="positions-template.csv">Download CSV template</a></p>
+      <p><a className="quiet" href={`data:text/csv;charset=utf-8,${encodeURIComponent(positionsTemplate)}`} download="positions-template.csv">Download CSV template</a> · <a className="quiet" href="/import/ghostfolio">Import a Ghostfolio export instead</a></p>
       <form className="import-form" key={newFile} onSubmit={(event) => { event.preventDefault(); void run('preview') }}>
         <div className="field">
           <label htmlFor="positions-file">Positions CSV</label>

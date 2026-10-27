@@ -2,9 +2,13 @@ import { readFileSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 import { e2e } from './env'
 
-const sample = readFileSync('docs/examples/ghostfolio-export.sample.json')
+const sampleText = readFileSync('docs/examples/ghostfolio-export.sample.json', 'utf8')
+const sampleAccountId = '00000000-0000-4000-8000-000000000001'
 
-test('Ghostfolio export upload reports counts, skips a repeat and rejects a bad file', async ({ page }) => {
+test('Ghostfolio export upload reports counts, skips a repeat and rejects a bad file', async ({ page, browserName }) => {
+  // The browsers share one database, so each imports the sample under its own Ghostfolio account ID.
+  const browserId = `00000000-0000-4000-8000-${Buffer.from(browserName).toString('hex').padEnd(12, '0').slice(0, 12)}`
+  const sample = Buffer.from(sampleText.replaceAll(sampleAccountId, browserId))
   await page.goto('/import/ghostfolio')
   await expect(page).toHaveURL(/\/login/)
   await page.getByLabel('Password').fill(e2e.password)
@@ -22,6 +26,6 @@ test('Ghostfolio export upload reports counts, skips a repeat and rejects a bad 
   await expect(page.getByRole('status')).toContainText(/Created 0 accounts.*Skipped 1 accounts/)
   await upload(Buffer.from('{"meta":{"version":"9.9.9"}}'))
   await page.getByRole('button', { name: 'Import export' }).click()
-  await expect(page.getByRole('alert')).toContainText('Import rejected')
+  await expect(page.getByText(/Import rejected: meta\.version/)).toBeVisible()
   await expect(page.getByRole('status')).toHaveCount(0)
 })

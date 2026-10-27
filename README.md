@@ -38,6 +38,8 @@ Requirements: Docker with Compose. Node.js 26 is only needed to run the host-sid
    npm run import:ghostfolio -- private/ghostfolio-export.json
    ```
 
+   Once the app is running you can instead sign in and upload the same file at `/import/ghostfolio`.
+
    To try the app first, import the sample at [docs/examples/ghostfolio-export.sample.json](docs/examples/ghostfolio-export.sample.json) instead. If you have no Ghostfolio data, skip to step 4 (manual entry) or use **Import positions** below.
 
    It prints `created`, `skipped` and `rejected` counts. Re-importing an identical export creates nothing, and an invalid export is rejected without saving anything. Details: [docs/local-import.md](docs/local-import.md).
