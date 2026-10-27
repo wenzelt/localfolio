@@ -238,14 +238,14 @@ test.describe('Theme picker', () => {
     await expect(html).toHaveAttribute('data-theme', 'ledger')
   })
 
-  test('switches to Pop Art with its parody note, keeps the choice across a reload, and the figures stay put', async ({ page }) => {
+  test('switches to Pop Art, keeps the choice across a reload, and the figures stay put', async ({ page }) => {
     await signIn(page)
     const html = page.locator('html')
     const figure = await page.locator('.value').innerText()
     await page.locator('.theme-picker summary').click()
     await page.getByRole('button', { name: /Pop Art/ }).click()
     await expect(html).toHaveAttribute('data-theme', 'popart')
-    await expect(page.getByText('Independent satire. Not affiliated with or endorsed by Donald Trump or any political campaign.')).toBeVisible()
+    await expect(page.getByText(/satire|parody/i)).toHaveCount(0)
     await expect(page.locator('.pop-banner')).toBeVisible()
     await expect(page.locator('.value')).toHaveText(figure)
     await page.reload()
