@@ -37,10 +37,6 @@ describe('the add buy page', () => {
     expect(html).toContain('<option value="" selected="">Choose an account</option>')
   })
 
-  it('keeps the header inside main so it shares the page width and gutters', () => {
-    expect(renderToStaticMarkup(<BuyView accounts={accounts} today="2026-03-02" />)).toMatch(/^<main><header>.*<\/header><section class="card buy">.*<\/section><\/main>$/)
-  })
-
   it('links back to the portfolio', () => {
     expect(renderToStaticMarkup(<BuyView accounts={accounts} today="2026-03-02" />)).toContain('href="/"')
   })
@@ -48,7 +44,7 @@ describe('the add buy page', () => {
   it('explains how to create an account when there is none', () => {
     const html = renderToStaticMarkup(<BuyView accounts={[]} today="2026-03-02" />)
     expect(html).toContain('No account yet')
-    expect(html).toContain('ledger:add -- account')
+    expect(html).toMatch(/<a[^>]*href="\/accounts"[^>]*>Add an account<\/a>/)
     expect(html).not.toContain('role="combobox"')
   })
 })

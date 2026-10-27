@@ -117,6 +117,11 @@ describe('dashboard rendering', () => {
     expect(renderToStaticMarkup(<Dashboard report={null} />)).not.toContain('data-live-refresh')
   })
 
+  it('links to the accounts page from the overview, also when nothing is imported', () => {
+    expect(renderToStaticMarkup(<Dashboard report={report} />)).toMatch(/<a[^>]*href="\/accounts"[^>]*>Manage accounts<\/a>/)
+    expect(renderToStaticMarkup(<Dashboard report={null} />)).toMatch(/<a[^>]*href="\/accounts"[^>]*>Manage accounts<\/a>/)
+  })
+
   it('names the next step when nothing is imported', () => {
     const html = renderToStaticMarkup(<Dashboard report={null} />)
     expect(html).toContain('npm run import:ghostfolio')
@@ -138,6 +143,14 @@ describe('dashboard rendering', () => {
     it('shows today’s EUR change and percentage with its date, whatever chart timeframe is selected', () => {
       const html = renderToStaticMarkup(<Dashboard report={{ ...report, period: 'MAX' }} daily={daily} />)
       expect(html).toMatch(/<dt[^>]*>Today · 2026-10-21<\/dt><dd[^>]*>[^<]*€5\.00[^<]*\+2\.50%/)
+    })
+
+    it('says how many holdings are still on an earlier session than the one dated', () => {
+      const mixed = [{ ...daily[0], observedOn: '2026-10-26' }, { ...daily[1], observedOn: '2026-10-23' }]
+      const html = renderToStaticMarkup(<Dashboard report={report} daily={mixed} />)
+      expect(html).toContain('Today · 2026-10-26')
+      expect(html).toContain('1 holding still on 2026-10-23 or earlier')
+      expect(renderToStaticMarkup(<Dashboard report={report} daily={daily} />)).not.toContain('still on')
     })
 
     it('masks the amount but keeps the percentage in hide mode', () => {

@@ -52,9 +52,9 @@ export function Dashboard({ report, hidden = false, theme = 'ledger', position, 
   const pop = theme === 'popart'
   return <main>
     <header><a href={hidden ? '/?hide=1' : '/'} className="brand">{pop ? <HairSwoop className="mark hair-mark" /> : <Mark />}<span>Localfolio</span></a><div className="actions"><a className="quiet add-buy" href="/buy">Add buy</a><PrivacyToggle href={`/?${scope}period=${period}${hidden ? '&hide=0' : '&hide=1'}`} hidden={hidden} /><ThemePicker theme={theme} /><form action="/logout" method="post"><button type="submit" className="quiet">Log out</button></form></div></header>
-    <p><a className="quiet" href="/import">Import positions</a></p>
+    <p><a className="quiet" href="/import">Import positions</a> · <a className="quiet" href="/accounts">Manage accounts</a></p>
     {!report ? <section className="card">{pop && <HairSwoop className="hair-empty" />}<h1>No portfolio imported</h1><p>Import your Ghostfolio export, or record transactions by hand, then refresh market data.</p>
-      <p><code>npm run import:ghostfolio -- &lt;file&gt;</code></p><p><code>npm run ledger:add -- account --name &lt;name&gt; --currency EUR</code></p></section> : <>
+      <p><a className="quiet" href="/import/ghostfolio">Upload your Ghostfolio export</a></p><p><code>npm run import:ghostfolio -- &lt;file&gt;</code></p><p><code>npm run ledger:add -- account --name &lt;name&gt; --currency EUR</code></p></section> : <>
       {pop && <HairBanner />}
       <section className="heading"><div>{position && <a className="back" href={`/?period=${period}${hidden ? '&hide=1' : ''}`}>Back to portfolio</a>}<h1>{position?.name || position?.symbol || 'Your portfolio'}</h1>{position?.name && <p className="muted">{position.symbol}</p>}<p className="meta">{position ? `${position.accountName} · EUR` : 'Overview · EUR'}<LiveRefresh fetchedAt={report.freshness.fetchedAt} /></p>{!position && <a className="quiet buy-more overview-buy" href="/buy">Add buy</a>}{position && <a className="quiet buy-more" href={`/buy?account=${encodeURIComponent(position.accountId)}&symbol=${encodeURIComponent(position.symbol)}`}>Buy more</a>}</div>
         <PeriodControl period={report.period} />
@@ -64,7 +64,7 @@ export function Dashboard({ report, hidden = false, theme = 'ledger', position, 
       <section className="card">
         {pop && <HairSticker label="Comb-over edition" />}
         <div className="summary"><div><p className="label">Net invested value</p><div className="value">{hidden ? mask : formatEur(report.value)}</div></div>
-        <dl className="stats"><div><dt>Change</dt><dd className={tone(report.change)}>{hidden ? mask : formatEur(report.change)}</dd></div><div><dt>Return</dt><dd className={tone(report.changePercent)}>{formatPercent(report.changePercent)}</dd></div>{today && <div><dt title={`Latest available session per holding; excludes FX-only movements. ${today.excluded} holding(s) without a comparable move excluded.`}>{`Today · ${today.date}`}</dt><dd className={tone(today.changePercent)}>{hidden ? mask : formatEur(today.change)} · {formatPercent(today.changePercent)}</dd></div>}</dl></div>
+        <dl className="stats"><div><dt>Change</dt><dd className={tone(report.change)}>{hidden ? mask : formatEur(report.change)}</dd></div><div><dt>Return</dt><dd className={tone(report.changePercent)}>{formatPercent(report.changePercent)}</dd></div>{today && <div><dt title={`Latest available session per holding; excludes FX-only movements. ${today.excluded} holding(s) without a comparable move excluded.`}>{`Today · ${today.date}`}</dt><dd className={tone(today.changePercent)}>{hidden ? mask : formatEur(today.change)} · {formatPercent(today.changePercent)}{today.staleCount > 0 && <small className="muted"> {today.staleCount} {today.staleCount === 1 ? 'holding' : 'holdings'} still on {today.oldestDate} or earlier</small>}</dd></div>}</dl></div>
         <InteractiveChart key={report.period} series={report.series} tone={tone(report.changePercent)} hidden={hidden} />
         <div className="dates"><time>{report.from}</time><time>{report.to}</time></div>
       </section>
