@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { AccountsView } from './accounts-view'
@@ -11,13 +12,15 @@ const accounts = [{ id: 'acc-1', name: 'Broker', currency: 'EUR', comment: null,
 
 // The header must sit inside <main>, like the dashboard's, so it shares the page width and gutters
 // instead of running edge to edge with its content centred beneath it.
-describe.each([
-  ['accounts', <AccountsView accounts={accounts} />],
-  ['add buy', <BuyView accounts={accounts} today="2026-03-02" />],
-  ['import positions', <PositionsImportView />],
-  ['import Ghostfolio export', <GhostfolioImportView />],
-])('the %s page', (_name, page) => {
-  const html = renderToStaticMarkup(page)
+const pages: [string, () => ReactElement][] = [
+  ['accounts', () => <AccountsView accounts={accounts} />],
+  ['add buy', () => <BuyView accounts={accounts} today="2026-03-02" />],
+  ['import positions', () => <PositionsImportView />],
+  ['import Ghostfolio export', () => <GhostfolioImportView />],
+]
+
+describe.each(pages)('the %s page', (_name, page) => {
+  const html = renderToStaticMarkup(page())
 
   it('renders its header inside main', () => {
     expect(html).toMatch(/^<main><header>.*<\/header>/)
