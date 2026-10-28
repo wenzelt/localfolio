@@ -235,6 +235,7 @@ summary { display: flex; align-items: center; min-height: 44px; cursor: pointer;
 
 /* Add a buy: a card with a two-column form that stacks on a phone; the symbol search results drop down under their field. */
 a.quiet { display: inline-flex; align-items: center; min-height: 44px; border-radius: var(--radius-control); text-decoration: none; }
+.buy, .import, .accounts { margin: 24px auto 0; }
 .buy { max-width: 720px; }
 .buy-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .buy-form .wide { grid-column: 1 / -1; }
