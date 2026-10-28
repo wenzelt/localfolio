@@ -23,7 +23,7 @@ const vapor = readFileSync(new URL('../app/vaporwave.css', import.meta.url), 'ut
 const prefix = 'html[data-theme="vaporwave"]'
 const vaporwave = block(vapor.match(/html\[data-theme="vaporwave"\] \{([^}]*)\}/)![1])
 
-// The pop art parody is the third theme: its own file, its own scope, light only.
+// The pop art stars and stripes theme is the third theme: its own file, its own scope, light only.
 const pop = readFileSync(new URL('../app/popart.css', import.meta.url), 'utf8')
 const popPrefix = 'html[data-theme="popart"]'
 const popart = block(pop.match(/html\[data-theme="popart"\] \{([^}]*)\}/)![1])
@@ -117,12 +117,12 @@ describe('theme picker styling', () => {
   })
 })
 
-describe('pop art parody theme', () => {
+describe('pop art stars and stripes theme', () => {
   const layout = readFileSync(new URL('../app/layout.tsx', import.meta.url), 'utf8')
   const strip = pop.replace(/\/\*[\s\S]*?\*\//g, '')
   const rules = [...strip.matchAll(/^([^\s@}][^{]*)\{/gm)].map(([, selectors]) => selectors)
 
-  it('uses the campaign-poster palette on paper, light only, and stays in its own scope', () => {
+  it('uses the red, white and blue poster palette on paper, light only, and stays in its own scope', () => {
     expect(popart).toMatchObject({ bg: '#fff8e7', surface: '#ffffff', text: '#111111', accent: '#d71920', chart: '#123a8c', 'pop-gold': '#ffd447', 'pop-gold-shadow': '#c58a13', 'pop-orange': '#ff8a24' })
     expect(pop).toMatch(/color-scheme: light/)
     expect(rules.length).toBeGreaterThan(20)
@@ -175,9 +175,14 @@ describe('pop art parody theme', () => {
 
   it('keeps its decoration out of the way: untouched pointers, hidden below phone width, shadows and borders slimmed', () => {
     expect(strip).toMatch(/\.pop-banner \{[^}]*pointer-events: none/)
-    expect(strip).toMatch(/\.hair-sticker \{[^}]*pointer-events: none/)
+    expect(strip).toMatch(/\.star-sticker \{[^}]*pointer-events: none/)
     expect(strip).toMatch(/@media \(max-width: 640px\) \{[^@]*--pop-shadow-md: 3px 3px 0 var\(--pop-ink\)/)
-    expect(strip).toMatch(/@media \(max-width: 480px\) \{[^@]*\.hair-sticker \{[^}]*display: none/)
+    expect(strip).toMatch(/@media \(max-width: 480px\) \{[^@]*\.star-sticker \{[^}]*display: none/)
+  })
+
+  it('is generic: its stylesheet and artwork refer to no real person, campaign or slogan', () => {
+    const artwork = readFileSync(new URL('./stars.tsx', import.meta.url), 'utf8')
+    for (const source of [pop, artwork, layout]) expect(source).not.toMatch(/trump|satire|parody|campaign|swoop|comb-over|\bhair\b|maga|unprecedented/i)
   })
 
   it('keeps heatmap tile text, set in ink, legible at the strongest tint in both directions', () => {

@@ -3,7 +3,7 @@ import { sameOrigin } from './web-auth'
 export const THEMES = [
   { id: 'ledger', name: 'Ledger', note: 'Calm ink, light or dark' },
   { id: 'vaporwave', name: 'Vaporwave', note: 'Neon outrun, always dark' },
-  { id: 'popart', name: 'Pop Art', note: 'Comb-over parody, always bright' },
+  { id: 'popart', name: 'Pop Art', note: 'Stars and stripes, always bright' },
 ] as const
 
 export type Theme = (typeof THEMES)[number]['id']
