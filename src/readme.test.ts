@@ -9,6 +9,24 @@ const read = (path: string) => readFileSync(resolve(root, path), 'utf8')
 const readme = () => read('README.md')
 
 describe('README for first-time hosts', () => {
+  it('helps beginners get the code and understand where to run commands', () => {
+    expect(readme()).toContain('git clone https://github.com/wenzelt/localfolio.git')
+    expect(readme()).toContain('cd localfolio')
+    expect(readme()).toMatch(/terminal.*(PowerShell|Terminal)/i)
+    expect(readme()).toContain('docker compose version')
+  })
+
+  it('leads with browser entry and explains safe shutdown and persistent data', () => {
+    expect(readme()).toMatch(/Node\.js is not required.*browser/i)
+    expect(readme()).toContain('**Manage accounts**')
+    expect(readme()).toContain('**Add buy**')
+    expect(readme()).toContain('http://127.0.0.1:3000/import/ghostfolio')
+    expect(readme().indexOf('http://127.0.0.1:3000/import/ghostfolio')).toBeLessThan(readme().indexOf('npm run import:ghostfolio'))
+    expect(readme()).toContain('docker compose --profile app stop')
+    expect(readme()).toMatch(/down -v.*(delete|remove|erase)/i)
+    expect(readme()).toMatch(/127\.0\.0\.1.*(same|this) (computer|machine)/i)
+  })
+
   it('ships an MIT license that package.json declares', () => {
     expect(read('LICENSE')).toMatch(/^MIT License\n/)
     expect(read('LICENSE')).toContain('Permission is hereby granted, free of charge')
