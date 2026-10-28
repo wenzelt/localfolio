@@ -12,3 +12,5 @@ playwright-report/
 __pycache__/
 .coverage*
 .DS_Store
+*.dump
+DEPLOY-HANDOFF.md

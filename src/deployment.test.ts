@@ -31,6 +31,17 @@ describe('web deployment packaging', () => {
     for (const path of ['.env', '.env.*', 'private', '.git', 'node_modules', '.next', '.venv']) expect(ignore).toContain(path)
   })
 
+  it('keeps database dumps and the deploy handoff out of Git', () => {
+    const ignore = read('.gitignore').split('\n')
+    for (const path of ['*.dump', 'DEPLOY-HANDOFF.md']) expect(ignore).toContain(path)
+    expect(ignore).toContain('!.env.example')
+  })
+
+  it('keeps database dumps and the deploy handoff out of Docker builds', () => {
+    const ignore = read('.dockerignore').split('\n')
+    for (const path of ['*.dump', '**/*.dump', 'DEPLOY-HANDOFF.md']) expect(ignore).toContain(path)
+  })
+
   it('defaults the opt-in web service to loopback without requiring web settings for workers', () => {
     const compose = read('compose.yaml')
     expect(compose).toContain('  app:')
