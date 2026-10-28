@@ -6,7 +6,31 @@ A self-hosted, single-owner portfolio tracker inspired by Ghostfolio. It reads a
 
 ## Setup
 
-Requirements: Docker with Compose. Node.js 26 is only needed to run the host-side commands (import, manual entry, backup) and the checks at the end; the dashboard and database run entirely in Docker.
+You do not need to write code to use Localfolio. **Self-hosted** means the app and your financial records live on a computer you control. That computer must be running when you want to use the app.
+
+### Before you start
+
+- Install and open [Docker Desktop](https://www.docker.com/products/docker-desktop/) on Windows or macOS. On Linux, install [Docker Engine and the Compose plugin](https://docs.docker.com/engine/install/).
+- Install [Git](https://git-scm.com/downloads) to download the project and get updates.
+- Open a terminal: **PowerShell** on Windows or **Terminal** on macOS/Linux. This is the window where you type commands. Run one code block at a time and wait for it to finish.
+
+Check that Docker is ready. Both commands should print a version number:
+
+```sh
+docker --version
+docker compose version
+```
+
+Download the project and enter its folder:
+
+```sh
+git clone https://github.com/wenzelt/localfolio.git
+cd localfolio
+```
+
+Run the remaining commands from this folder. If you downloaded a ZIP instead, extract it and open a terminal in the extracted folder. Git is needed for the update commands later in this guide.
+
+**Node.js is not required to start the app or add data in the browser.** Install Node.js 26 on the host computer only if you want the optional command-line tools, backups or developer checks. Docker supplies the app's runtime.
 
 1. Create the configuration. `.env` is git-ignored; see [.env.example](.env.example) for every variable.
 
@@ -15,7 +39,19 @@ Requirements: Docker with Compose. Node.js 26 is only needed to run the host-sid
    openssl rand -hex 32   # use as SESSION_SECRET
    ```
 
-   Set `POSTGRES_PASSWORD`, `APP_PASSWORD` and `SESSION_SECRET` in `.env`. Never commit it.
+   On PowerShell, use `Copy-Item .env.example .env` instead of `cp`. You can also duplicate `.env.example` in your file manager and name the copy exactly `.env`, not `.env.txt`.
+
+   Open `.env` in a text editor (for example, VS Code). It is a settings file: each line has a name on the left of `=` and its value on the right. Fill in these three values:
+
+   | Setting | What to put there |
+   | --- | --- |
+   | `POSTGRES_PASSWORD` | A long, unique database password. You do not type this into the website. |
+   | `APP_PASSWORD` | A different strong password. This is what you use to sign in to Localfolio. |
+   | `SESSION_SECRET` | The random output from `openssl rand -hex 32` above. It protects your signed-in session. |
+
+   If OpenSSL is unavailable, use a password manager to generate a random 64-character hexadecimal string for `SESSION_SECRET` (letters a–f and digits 0–9). Do not reuse one of your passwords for it. Save the file before continuing.
+
+   **Keep `.env` private.** Do not share it, include it in screenshots, or commit it to Git. `.env` is git-ignored, meaning Git normally skips it. Leave the other settings at their defaults for your first local setup. If you already have a `.env`, keep it rather than overwriting it.
 
 2. Start the database and the dashboard:
 
@@ -25,35 +61,15 @@ Requirements: Docker with Compose. Node.js 26 is only needed to run the host-sid
 
    The dashboard is at <http://127.0.0.1:3000>. Sign in with the `APP_PASSWORD` from your `.env`. The dashboard stays empty until you add data in the next steps. PostgreSQL data lives in the named volume `portfolio-db` and survives restarts and rebuilds.
 
-3. Import your Ghostfolio export. This runs from the host. Add this line to `.env`, with your own `POSTGRES_PASSWORD` in place of the placeholder (the database is published on loopback port 55432):
+3. Add your data in the browser. Choose whichever route fits you:
 
-   ```sh
-   DATABASE_URL=postgres://portfolio:<POSTGRES_PASSWORD>@127.0.0.1:55432/portfolio
-   ```
+   - **Coming from Ghostfolio?** Download the JSON file from Ghostfolio's activities export. Open <http://127.0.0.1:3000/import/ghostfolio>, select that file and choose **Import export**. JSON is a structured data file; you do not need to edit it. The page reports how many records were created or skipped. Uploading the identical export again adds nothing; an invalid export saves nothing.
+   - **Just trying the app?** Download [the sample export](docs/examples/ghostfolio-export.sample.json) and upload it the same way. It contains fictional example data. Use a separate test installation if you do not want example records mixed with real ones.
+   - **No Ghostfolio data?** Use **Manage accounts** and **Add buy** below, or **Import positions** for a spreadsheet.
 
-   Save the JSON from Ghostfolio's activities export as `private/ghostfolio-export.json` (`private/` is git-ignored), then run:
-
-   ```sh
-   npm ci
-   npm run import:ghostfolio -- private/ghostfolio-export.json
-   ```
-
-   Once the app is running you can instead sign in and upload the same file at `/import/ghostfolio`.
-
-   To try the app first, import the sample at [docs/examples/ghostfolio-export.sample.json](docs/examples/ghostfolio-export.sample.json) instead. If you have no Ghostfolio data, skip to step 4 (manual entry) or use **Import positions** below.
-
-   It prints `created`, `skipped` and `rejected` counts. Re-importing an identical export creates nothing, and an invalid export is rejected without saving anything. Details: [docs/local-import.md](docs/local-import.md).
-
-   If you imported before the normalized ledger existed, move those stored snapshots into the new tables once with `npm run migrate:snapshots`. It is safe to repeat and leaves the old snapshot rows untouched.
+   More about supported exports: [docs/local-import.md](docs/local-import.md). The optional command-line route is documented after the setup steps.
 
 4. Create accounts with **Manage accounts** on the dashboard (`/accounts`): enter a name, EUR or USD currency, and an optional comment. Exact duplicate names are rejected. The page lists account activity and lets you permanently delete an account and all its transactions after typing its exact name. Deletion cannot be undone; back up first if needed.
-
-   Alternatively, record accounts and transactions from the command line instead of (or alongside) importing:
-
-   ```sh
-   npm run ledger:add -- account --name "Broker" --currency EUR
-   npm run ledger:add -- transaction --account <id> --type BUY --date 2026-01-02 --currency USD --symbol EXAMPLE --quantity 0.5 --unit-price 80.25 --fee 1
-   ```
 
    Details and validation rules: [docs/local-import.md](docs/local-import.md#manual-entry).
    Purchases can also be added in the web app (**Add buy**), with search-as-you-type symbol lookup: [docs/local-import.md](docs/local-import.md#adding-a-buy-in-the-web-app).
@@ -72,6 +88,67 @@ Requirements: Docker with Compose. Node.js 26 is only needed to run the host-sid
 
 Yahoo Finance is an unofficial source: it may rate limit or change without notice. A failed refresh keeps the previously cached values, and the dashboard warns when prices or exchange rates are more than seven days old.
 
+### What the setup commands do
+
+Docker runs separate **containers** (isolated processes) for the website, database and price worker. **Compose** starts these services together. A **profile** selects an optional service, such as `app` for the website. `--build` prepares its software, and `-d` leaves it running in the background. The first build can take several minutes.
+
+The address `127.0.0.1` refers to this computer. Open the link in a browser on the same computer running Docker, not on a different phone or laptop. For a home server, read the networking section below before changing this setting.
+
+A **volume** is Docker's persistent storage. Your `portfolio-db` volume holds the records even when the app container is replaced. It is not a backup: losing the computer or deleting the volume can still lose the data.
+
+### Stop, restart and update
+
+Stop the website and database without deleting your data:
+
+```sh
+docker compose --profile app stop
+```
+
+Start them again:
+
+```sh
+docker compose --profile app up -d
+```
+
+To update a Git-cloned installation, make a backup first, then run:
+
+```sh
+git pull --ff-only
+docker compose --profile app up -d --build
+```
+
+If Git reports local changes or a conflict, stop and resolve that before continuing; do not discard files just to get the update through. If you also run the optional `live` or `scheduler` services, stop/start or rebuild them with their profiles too.
+
+**Do not run `docker compose down -v`: it deletes the database volume and your saved records.** A normal stop or rebuild does not delete it.
+
+### Optional: command-line import and manual entry
+
+Skip this section if you use the browser. These commands run on the **host**, meaning the computer running Docker, rather than inside a container. Install Node.js 26 first and run `npm ci` from the project folder to install the command-line dependencies.
+
+Add the following line to `.env`, replacing `<POSTGRES_PASSWORD>` (including its angle brackets) with your database password. If it contains URL-special characters such as `@`, `:`, `/` or `#`, percent-encode those characters in this URL only; keep the original password in `POSTGRES_PASSWORD`.
+
+```sh
+DATABASE_URL=postgres://portfolio:<POSTGRES_PASSWORD>@127.0.0.1:55432/portfolio
+```
+
+Create a `private` folder and save your Ghostfolio export there as `ghostfolio-export.json`. That folder is git-ignored. Then import it:
+
+```sh
+npm ci
+npm run import:ghostfolio -- private/ghostfolio-export.json
+```
+
+The command prints `created`, `skipped` and `rejected` counts. Alternatively, record accounts and transactions by hand:
+
+```sh
+npm run ledger:add -- account --name "Broker" --currency EUR
+npm run ledger:add -- transaction --account <id> --type BUY --date 2026-01-02 --currency USD --symbol EXAMPLE --quantity 0.5 --unit-price 80.25 --fee 1
+```
+
+Replace `<id>` with the account ID returned by the account command; `EXAMPLE` is a placeholder for a real Yahoo ticker. Do not paste the transaction command unchanged. A **ledger** is the list of accounts and transactions used to calculate your portfolio.
+
+For installations that imported before the normalized ledger existed, `npm run migrate:snapshots` moves stored snapshots into the current tables. It is safe to repeat and leaves old snapshot rows untouched. New installations do not need this command.
+
 ## Health checks
 
 - Web app: `GET /api/health` returns `200 {"status":"ok"}` when the database answers, otherwise `503 {"status":"unavailable"}`. It needs no login and reveals nothing else. Compose uses it as the `app` container health check.
@@ -82,7 +159,9 @@ Yahoo Finance is an unofficial source: it may rate limit or change without notic
 
 - **`port is already allocated` on 3000 or 55432:** another program uses the port. Stop it, or change the host port in `compose.yaml`.
 - **`Incorrect password` on the login page:** use the `APP_PASSWORD` from `.env`. After changing `.env`, run `docker compose --profile app up -d` again so the container picks it up.
-- **`DATABASE_URL is required` from `npm run import:ghostfolio`:** add the `DATABASE_URL` line from step 3 to `.env`. Check that the database is up with `docker compose ps`.
+- **`docker` is not recognised or cannot connect:** check that Docker is installed and running. Reopen the terminal after installing it.
+- **Compose cannot find its configuration file:** your terminal is in the wrong folder. Run `cd localfolio` (or open a terminal in the project folder).
+- **`DATABASE_URL is required` from `npm run import:ghostfolio`:** add the `DATABASE_URL` line from the optional command-line section to `.env`. Check that the database is up with `docker compose ps`.
 - **Prices missing or stale:** run the refresh in step 5 and read its summary. Yahoo can hit a rate limit; wait and try again, since failed refreshes keep the previous values.
 - **Setup stops with `Set POSTGRES_PASSWORD`:** the variable is empty in `.env`.
 
