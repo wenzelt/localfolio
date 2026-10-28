@@ -46,9 +46,9 @@ export function PositionsImportView() {
     }
   }
 
-  return <>
+  return <main>
     <header><a href="/" className="brand"><span>Localfolio</span></a><div className="actions"><a className="back" href="/">Back to portfolio</a></div></header>
-    <main><section className="card import">
+    <section className="card import">
       <h1>Import positions</h1>
       <p className="muted">Upload current holdings as opening buys. This adds to existing positions; it does not replace them or recreate earlier performance. No cash is moved.</p>
       <ul className="rules">
@@ -79,6 +79,6 @@ export function PositionsImportView() {
           <button type="button" disabled={busy} onClick={() => { generation.current++; setRows([]); setCsv(''); setNewFile((value) => value + 1) }}>Cancel</button>
         </div>
       </section>}
-    </section></main>
-  </>
+    </section>
+  </main>
 }
