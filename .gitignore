@@ -13,4 +13,6 @@ __pycache__/
 .coverage*
 .DS_Store
 .taste-skill/
-.claude/design/*.html
+.claude/
+*.dump
+DEPLOY-HANDOFF.md
