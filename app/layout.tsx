@@ -11,7 +11,7 @@ const sans = localFont({ src: './fonts/Geist-Variable.woff2', variable: '--font-
 // The vaporwave faces are declared but not preloaded: only a visitor who picks that theme ever downloads them.
 const display = localFont({ src: './fonts/Orbitron-Variable.woff2', variable: '--font-display', weight: '400 900', display: 'swap', preload: false })
 const mono = localFont({ src: './fonts/ShareTechMono-Regular.woff2', variable: '--font-mono', weight: '400', display: 'swap', preload: false })
-// The pop art parody's heavy condensed display face, likewise only fetched by a visitor who chooses it.
+// The pop art theme's heavy condensed display face, likewise only fetched by a visitor who chooses it.
 const poster = localFont({ src: './fonts/Anton-Regular.ttf', variable: '--font-pop', weight: '400', display: 'swap', preload: false })
 
 export const metadata = { title: 'Localfolio', description: 'Your personal EUR portfolio' }

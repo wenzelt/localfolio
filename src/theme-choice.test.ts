@@ -7,8 +7,13 @@ const post = (theme: string, headers: Record<string, string> = {}, url = 'http:/
 }
 
 describe('reading the saved theme', () => {
-  it('offers the ledger first, the vaporwave second and the pop art parody third', () => {
+  it('offers the ledger first, the vaporwave second and the pop art stars and stripes third', () => {
     expect(THEMES.map((theme) => theme.id)).toEqual(['ledger', 'vaporwave', 'popart'])
+  })
+
+  it('describes the pop art theme without naming anyone', () => {
+    const popart = THEMES.find((theme) => theme.id === 'popart')
+    expect(popart).toMatchObject({ name: 'Pop Art', note: 'Stars and stripes, always bright' })
   })
 
   it('defaults to the ledger', () => {

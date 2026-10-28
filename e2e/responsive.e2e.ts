@@ -83,8 +83,8 @@ for (const width of widths) {
       await page.screenshot({ path: `.taste-skill/responsive/popart-${width}.png`, fullPage: true })
       expect(await layoutProblems(page), 'pop art dashboard').toEqual([])
       const covered = await page.evaluate(() => {
-        const art = [...document.querySelectorAll('.hair-sticker, .pop-banner')].filter((element) => getComputedStyle(element).display !== 'none')
-        const targets = [...document.querySelectorAll('a[href], button, select, input, summary, .value, .stats, .label, h1, h2')].filter((element) => !element.closest('.pop-banner, .hair-sticker, details:not([open])') || element.matches('summary'))
+        const art = [...document.querySelectorAll('.star-sticker, .pop-banner')].filter((element) => getComputedStyle(element).display !== 'none')
+        const targets = [...document.querySelectorAll('a[href], button, select, input, summary, .value, .stats, .label, h1, h2')].filter((element) => !element.closest('.pop-banner, .star-sticker, details:not([open])') || element.matches('summary'))
         const hits: string[] = []
         for (const piece of art) for (const target of targets) {
           const a = piece.getBoundingClientRect(), b = target.getBoundingClientRect()

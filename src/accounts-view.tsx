@@ -7,9 +7,8 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 const activity = (account: Account) => account.transactions === 0 ? 'No activity yet' : `${plural(account.positions, 'position')} · ${plural(account.transactions, 'transaction')}`
 
 export function AccountsView({ accounts }: { accounts: Account[] }) {
-  return <>
+  return <main>
     <header><a href="/" className="brand"><span>Localfolio</span></a><div className="actions"><a className="back" href="/">Back to portfolio</a></div></header>
-    <main>
       <section className="card accounts">
         <h1>Accounts</h1>
         {accounts.length === 0 ? <p className="muted">No accounts yet. Add one below, then record buys or import positions.</p>
@@ -22,6 +21,5 @@ export function AccountsView({ accounts }: { accounts: Account[] }) {
         <h2>Add an account</h2>
         <AddAccountForm />
       </section>
-    </main>
-  </>
+  </main>
 }

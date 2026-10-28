@@ -10,7 +10,7 @@ import { LiveRefresh } from './live-refresh'
 import { RemovePositionControl } from './remove-position-control'
 import { PeriodControl } from './period-control'
 import { ThemePicker } from './theme-picker'
-import { HairBanner, HairPattern, HairSticker, HairSwoop } from './hair'
+import { StarBanner, StarMark, StarPattern, StarSticker } from './stars'
 import type { Theme } from './theme-choice'
 
 import type { positionReport } from './positions'
@@ -35,8 +35,6 @@ const Mark = () => <svg className="mark" width="24" height="24" viewBox="0 0 24 
   <path d="M6 16l4-4.5 3 2.5 5-6" stroke="var(--chart)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 </svg>
 
-const satire = 'Independent satire. Not affiliated with or endorsed by Donald Trump or any political campaign.'
-
 export function Dashboard({ report, hidden = false, theme = 'ledger', position, daily = [], countries = {} }: { report: Report; hidden?: boolean; theme?: Theme; position?: Position; daily?: Parameters<typeof DailyHeatmap>[0]['items']; countries?: Record<string, CountryComposition> }) {
   const period = report?.period ?? 'MAX'
   const scope = position ? `account=${encodeURIComponent(position.accountId)}&symbol=${encodeURIComponent(position.symbol)}&` : ''
@@ -48,21 +46,21 @@ export function Dashboard({ report, hidden = false, theme = 'ledger', position, 
   const lastPrice = (report?.series.at(-1) as { price?: { close: string; currency: string } | null } | undefined)?.price
   const nativeValue = position?.status === 'calculated' && position.nativeInvested !== undefined && lastPrice?.currency === 'USD'
     ? formatFraction(multiply(decimalToFraction(position.quantity), decimalToFraction(lastPrice.close))) : null
-  // The pop art parody's artwork is rendered only in that theme, so the others carry none of it.
+  // The pop art theme's artwork is rendered only in that theme, so the others carry none of it.
   const pop = theme === 'popart'
   return <main>
-    <header><a href={hidden ? '/?hide=1' : '/'} className="brand">{pop ? <HairSwoop className="mark hair-mark" /> : <Mark />}<span>Localfolio</span></a><div className="actions"><a className="quiet add-buy" href="/buy">Add buy</a><PrivacyToggle href={`/?${scope}period=${period}${hidden ? '&hide=0' : '&hide=1'}`} hidden={hidden} /><ThemePicker theme={theme} /><form action="/logout" method="post"><button type="submit" className="quiet">Log out</button></form></div></header>
+    <header><a href={hidden ? '/?hide=1' : '/'} className="brand">{pop ? <StarMark className="mark star-mark" /> : <Mark />}<span>Localfolio</span></a><div className="actions"><a className="quiet add-buy" href="/buy">Add buy</a><PrivacyToggle href={`/?${scope}period=${period}${hidden ? '&hide=0' : '&hide=1'}`} hidden={hidden} /><ThemePicker theme={theme} /><form action="/logout" method="post"><button type="submit" className="quiet">Log out</button></form></div></header>
     <p><a className="quiet" href="/import">Import positions</a> · <a className="quiet" href="/accounts">Manage accounts</a></p>
-    {!report ? <section className="card">{pop && <HairSwoop className="hair-empty" />}<h1>No portfolio imported</h1><p>Import your Ghostfolio export, or record transactions by hand, then refresh market data.</p>
+    {!report ? <section className="card">{pop && <StarMark className="star-empty" />}<h1>No portfolio imported</h1><p>Import your Ghostfolio export, or record transactions by hand, then refresh market data.</p>
       <p><a className="quiet" href="/import/ghostfolio">Upload your Ghostfolio export</a></p><p><code>npm run import:ghostfolio -- &lt;file&gt;</code></p><p><code>npm run ledger:add -- account --name &lt;name&gt; --currency EUR</code></p></section> : <>
-      {pop && <HairBanner />}
+      {pop && <StarBanner />}
       <section className="heading"><div>{position && <a className="back" href={`/?period=${period}${hidden ? '&hide=1' : ''}`}>Back to portfolio</a>}<h1>{position?.name || position?.symbol || 'Your portfolio'}</h1>{position?.name && <p className="muted">{position.symbol}</p>}<p className="meta">{position ? `${position.accountName} · EUR` : 'Overview · EUR'}<LiveRefresh fetchedAt={report.freshness.fetchedAt} /></p>{!position && <a className="quiet buy-more overview-buy" href="/buy">Add buy</a>}{position && <a className="quiet buy-more" href={`/buy?account=${encodeURIComponent(position.accountId)}&symbol=${encodeURIComponent(position.symbol)}`}>Buy more</a>}</div>
         <PeriodControl period={report.period} />
       </section>
       {position && <section className="card"><h2>Position</h2>{position.status === 'calculated' ? <dl className="stats"><div><dt>Quantity</dt><dd>{hidden ? mask : position.quantity}</dd></div><div><dt>Cost basis · {position.currency}</dt><dd>{hidden ? mask : position.currency === 'EUR' ? formatEur(position.invested) : position.invested}</dd></div>{position.nativeInvested !== undefined && <div><dt>Cost basis · USD</dt><dd>{hidden ? mask : formatUsd(position.nativeInvested)}</dd></div>}{nativeValue !== null && <div><dt>Value · USD</dt><dd>{hidden ? mask : formatUsd(nativeValue)}</dd></div>}</dl> : <p role="status">Historical FX required to calculate this position.</p>}</section>}
       {position && <RemovePositionControl accountId={position.accountId} accountName={position.accountName} symbol={position.symbol} />}
       <section className="card">
-        {pop && <HairSticker label="Comb-over edition" />}
+        {pop && <StarSticker label="Stars & stripes" />}
         <div className="summary"><div><p className="label">Net invested value</p><div className="value">{hidden ? mask : formatEur(report.value)}</div></div>
         <dl className="stats"><div><dt>Change</dt><dd className={tone(report.change)}>{hidden ? mask : formatEur(report.change)}</dd></div><div><dt>Return</dt><dd className={tone(report.changePercent)}>{formatPercent(report.changePercent)}</dd></div>{today && <div><dt title={`Latest available session per holding; excludes FX-only movements. ${today.excluded} holding(s) without a comparable move excluded.`}>{`Today · ${today.date}`}</dt><dd className={tone(today.changePercent)}>{hidden ? mask : formatEur(today.change)} · {formatPercent(today.changePercent)}{today.staleCount > 0 && <small className="muted"> {today.staleCount} {today.staleCount === 1 ? 'holding' : 'holdings'} still on {today.oldestDate} or earlier</small>}</dd></div>}</dl></div>
         <InteractiveChart key={report.period} series={report.series} tone={tone(report.changePercent)} hidden={hidden} />
@@ -74,7 +72,7 @@ export function Dashboard({ report, hidden = false, theme = 'ledger', position, 
       {report.unpriced.length > 0 && <aside className="warning" role="status">{report.unpriced.length} positions unpriced and excluded: {report.unpriced.join(', ')}</aside>}
       <p className="footnote">Modified Dietz return · Daily closing prices · Excluded accounts omitted · Cash and dividends not included</p>
     </>}
-    {pop && <footer className="satire"><HairPattern /><p>{satire}</p></footer>}
+    {pop && <div className="star-footer"><StarPattern /></div>}
   </main>
 }
 
