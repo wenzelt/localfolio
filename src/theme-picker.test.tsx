@@ -45,7 +45,7 @@ describe('theme picker', () => {
     expect(ledger).not.toContain('aria-current')
   })
 
-  it('marks the pop art parody as current when it is the saved theme', () => {
+  it('marks pop art as current when it is the saved theme', () => {
     const [ledger, vaporwave, popart] = buttons(renderToStaticMarkup(<ThemePicker theme="popart" />))
     expect(popart).toContain('aria-current="true"')
     expect(ledger + vaporwave).not.toContain('aria-current')

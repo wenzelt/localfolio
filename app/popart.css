@@ -1,9 +1,8 @@
-/* Theme three: Pop Art parody. Light only, flat print colour on paper.
+/* Theme three: Pop Art, in stars and stripes. Light only, flat print colour on paper.
    Everything lives under the data-theme attribute the layout sets from the saved choice, so the other themes are untouched.
    It re-declares the tokens the components already read, then adds the print devices that make it this theme:
-   thick ink borders, hard offset shadows, halftone dots, a condensed poster face, bands of red, blue and gold, and the golden swoop (src/hair.tsx).
-   Data stays plain: charts, tables and figures keep their usual layout and honest values; the theme reaches them through framing and type only.
-   Independent satire of a public persona's branding. It names no slogan, quotes no one and implies no endorsement. */
+   thick ink borders, hard offset shadows, halftone dots, a condensed poster face, bands of red, blue and gold, and the star, flag and stripe artwork (src/stars.tsx).
+   Data stays plain: charts, tables and figures keep their usual layout and honest values; the theme reaches them through framing and type only. */
 html[data-theme="popart"] {
   color-scheme: light;
   --bg: #fff8e7; --surface: #ffffff; --raised: #f3e7c8; --text: #111111; --muted: #4a443a; --border: #111111; --rule: #d8ccae; --control: #111111;
@@ -25,9 +24,9 @@ html[data-theme="popart"] h1 {
   text-shadow: 3px 3px 0 var(--pop-red);
 }
 html[data-theme="popart"] .brand { color: #fff; font: 400 26px/1 var(--pop-display); letter-spacing: .04em; text-transform: uppercase; font-synthesis: none; }
-html[data-theme="popart"] .brand .mark { width: 40px; height: 28px; }
-html[data-theme="popart"] .hair-mark { --pop-outline: 2px; }
-html[data-theme="popart"] .brand::after { content: "Parody"; margin-left: 4px; padding: 3px 8px; border: 2px solid var(--pop-ink); background: var(--pop-red); color: #fff; font: 700 12px/1.2 var(--sans); letter-spacing: .08em; text-transform: uppercase; transform: rotate(-4deg); }
+html[data-theme="popart"] .brand .mark { width: 32px; height: 32px; }
+html[data-theme="popart"] .star-mark { --pop-outline: 2px; }
+html[data-theme="popart"] .brand::after { content: "USA"; margin-left: 4px; padding: 3px 8px; border: 2px solid var(--pop-ink); background: var(--pop-red); color: #fff; font: 700 12px/1.2 var(--sans); letter-spacing: .08em; text-transform: uppercase; transform: rotate(-4deg); }
 html[data-theme="popart"] .heading { margin: 28px 0 44px; }
 html[data-theme="popart"] .heading .muted, html[data-theme="popart"] .meta { color: var(--muted); }
 html[data-theme="popart"] .label, html[data-theme="popart"] .stats dt { color: var(--muted); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
@@ -97,7 +96,7 @@ html[data-theme="popart"] .heatmap-tile .tile-key { border: 2px solid var(--pop-
 html[data-theme="popart"] .country-allocation { height: 18px; border: 2px solid var(--pop-ink); border-radius: 0; }
 html[data-theme="popart"] .country-world path { stroke: var(--pop-ink); stroke-width: .35; }
 
-/* The banner: red poster copy against a blue halftone field holding the one dominant swoop. */
+/* The banner: red poster copy against a blue halftone field holding the flag and the crest. */
 html[data-theme="popart"] .pop-banner {
   display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); margin: 28px 0 0; border: 5px solid var(--pop-ink); background: var(--accent); box-shadow: var(--pop-shadow-lg); overflow: hidden; pointer-events: none;
 }
@@ -112,30 +111,29 @@ html[data-theme="popart"] .pop-banner-art {
   position: relative; display: grid; place-items: center; min-width: 0; min-height: 180px; padding: 20px 16px; border-left: 5px solid var(--pop-ink);
   background-color: var(--chart); background-image: radial-gradient(circle, rgba(255, 255, 255, .4) 1.6px, transparent 2.2px); background-size: 12px 12px;
 }
-html[data-theme="popart"] .hair-crest { display: grid; justify-items: center; gap: 10px; width: min(100%, 300px); }
-html[data-theme="popart"] .hair-crest svg { width: 100%; height: auto; }
+html[data-theme="popart"] .star-crest { display: grid; justify-items: center; gap: 10px; width: min(100%, 300px); }
+html[data-theme="popart"] .star-crest svg { width: 100%; height: auto; }
 html[data-theme="popart"] .bubble {
   position: relative; padding: 6px 14px; border: var(--pop-border); background: var(--bg); box-shadow: var(--pop-shadow-sm); color: var(--text);
   font: 400 clamp(16px, 2vw, 22px)/1.1 var(--pop-display); letter-spacing: .04em; text-transform: uppercase; font-synthesis: none; text-align: center;
 }
 html[data-theme="popart"] .bubble::before { content: ""; position: absolute; left: 50%; top: -14px; width: 0; height: 0; margin-left: -10px; border: 10px solid transparent; border-top: 0; border-bottom-color: var(--pop-ink); }
 html[data-theme="popart"] .bubble::after { content: ""; position: absolute; left: 50%; top: -9px; width: 0; height: 0; margin-left: -7px; border: 7px solid transparent; border-top: 0; border-bottom-color: var(--bg); }
-html[data-theme="popart"] .hair-cap { position: absolute; left: 12px; bottom: 10px; width: 76px; height: auto; transform: rotate(-8deg); }
-html[data-theme="popart"] .star { position: absolute; width: 30px; height: 30px; }
-html[data-theme="popart"] .star-a { top: 10px; right: 14px; transform: rotate(12deg); }
-html[data-theme="popart"] .star-b { bottom: 14px; right: 22px; width: 22px; height: 22px; transform: rotate(-10deg); }
+html[data-theme="popart"] .star-flag { position: absolute; left: 12px; bottom: 10px; width: 104px; height: auto; transform: rotate(-8deg); }
+html[data-theme="popart"] .spark { position: absolute; width: 30px; height: 30px; }
+html[data-theme="popart"] .spark-a { top: 10px; right: 14px; transform: rotate(12deg); }
+html[data-theme="popart"] .spark-b { bottom: 14px; right: 22px; width: 22px; height: 22px; transform: rotate(-10deg); }
 
-/* Stickers, the empty-state emblem and the satire note. */
-html[data-theme="popart"] .hair-sticker {
+/* Stickers, the empty-state emblem and the closing strip of stars. */
+html[data-theme="popart"] .star-sticker {
   position: absolute; top: -24px; right: 12px; z-index: 1; display: grid; place-items: center; align-content: center; gap: 2px; width: 76px; height: 76px; padding: 6px;
   border: var(--pop-border); border-radius: 50%; background: var(--accent); box-shadow: var(--pop-shadow-sm); color: #fff; transform: rotate(8deg); pointer-events: none; text-align: center;
 }
-html[data-theme="popart"] .hair-sticker svg { width: 40px; height: auto; --pop-outline: 2px; }
-html[data-theme="popart"] .hair-sticker span { font: 400 11px/1 var(--pop-display); letter-spacing: .04em; text-transform: uppercase; font-synthesis: none; }
-html[data-theme="popart"] .hair-empty { display: block; width: 160px; height: auto; margin: 0 0 16px; }
-html[data-theme="popart"] .satire { margin-top: 32px; border: var(--pop-border); background: var(--surface); box-shadow: var(--pop-shadow-sm); }
-html[data-theme="popart"] .hair-pattern { display: block; width: 100%; height: 28px; border-bottom: var(--pop-border); background: var(--bg); --pop-outline: 2px; }
-html[data-theme="popart"] .satire p { margin: 0; padding: 12px 16px; font-size: 14px; font-weight: 600; }
+html[data-theme="popart"] .star-sticker svg { width: 40px; height: auto; --pop-outline: 2px; }
+html[data-theme="popart"] .star-sticker span { font: 400 11px/1 var(--pop-display); letter-spacing: .04em; text-transform: uppercase; font-synthesis: none; }
+html[data-theme="popart"] .star-empty { display: block; width: 160px; height: auto; margin: 0 0 16px; }
+html[data-theme="popart"] .star-footer { margin-top: 32px; border: var(--pop-border); background: var(--bg); box-shadow: var(--pop-shadow-sm); pointer-events: none; }
+html[data-theme="popart"] .star-pattern { display: block; width: 100%; height: 28px; --pop-outline: 2px; }
 
 @media (max-width: 640px) {
   html[data-theme="popart"] {
@@ -146,15 +144,15 @@ html[data-theme="popart"] .satire p { margin: 0; padding: 12px 16px; font-size: 
   html[data-theme="popart"] .pop-banner { margin-top: 20px; border-width: 4px; }
   html[data-theme="popart"] .pop-banner-copy { padding: 16px 12px; }
   html[data-theme="popart"] .pop-banner-art { min-height: 120px; padding: 12px 8px; border-left-width: 4px; }
-  html[data-theme="popart"] .pop-banner .bubble, html[data-theme="popart"] .pop-banner .hair-cap, html[data-theme="popart"] .pop-banner .star { display: none; }
+  html[data-theme="popart"] .pop-banner .bubble, html[data-theme="popart"] .pop-banner .star-flag, html[data-theme="popart"] .pop-banner .spark { display: none; }
   html[data-theme="popart"] .pop-shout { -webkit-text-stroke: 4px var(--pop-ink); text-shadow: 2px 2px 0 var(--pop-ink); }
 }
-/* The bar needs the room: the brand keeps its emblem and drops its caption (the satire note stays at the foot of the page). */
+/* The bar needs the room: the brand keeps its emblem and drops its caption. */
 @media (max-width: 480px) {
   html[data-theme="popart"] .brand::after { display: none; }
   html[data-theme="popart"] .brand span { display: none; }
   html[data-theme="popart"] header .actions { gap: 6px; }
-  html[data-theme="popart"] .hair-sticker { display: none; }
+  html[data-theme="popart"] .star-sticker { display: none; }
   html[data-theme="popart"] .heading { margin-bottom: 24px; }
   html[data-theme="popart"] .pop-shout { font-size: 22px; }
 }
@@ -168,8 +166,8 @@ html[data-theme="popart"] .satire p { margin: 0; padding: 12px 16px; font-size: 
 
 /* Props respond like printed stickers: a short tilt and a short pop, and only for people who have not asked for less motion. */
 @media (prefers-reduced-motion: no-preference) {
-  html[data-theme="popart"] .hair-sticker { transition: transform 120ms ease-out; }
-  html[data-theme="popart"] .card:hover .hair-sticker { transform: rotate(-4deg); }
+  html[data-theme="popart"] .star-sticker { transition: transform 120ms ease-out; }
+  html[data-theme="popart"] .card:hover .star-sticker { transform: rotate(-4deg); }
   html[data-theme="popart"] .bubble { animation: pop-in 180ms ease-out both; }
   html[data-theme="popart"] button, html[data-theme="popart"] .privacy-toggle, html[data-theme="popart"] .theme-picker summary { transition: transform 80ms ease-out, box-shadow 80ms ease-out; }
 }
