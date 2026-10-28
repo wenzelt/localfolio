@@ -2,6 +2,9 @@
 .env.*
 private
 .git
+*.dump
+**/*.dump
+DEPLOY-HANDOFF.md
 node_modules
 .next
 .venv
