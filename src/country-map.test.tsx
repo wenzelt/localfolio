@@ -19,6 +19,11 @@ describe('country exposure map', () => {
     expect(html).toContain('Source dates are not live')
     expect(html).toContain('https://example.org/fund')
   })
+  it('says a fund can be read from the countries of its largest holdings, not only from reported weights', () => {
+    const html = renderToStaticMarkup(<CountryMap positions={positions} compositions={compositions} />)
+    expect(html).toContain('Funds: reported country weights or the countries of their largest holdings')
+    expect(html).toContain('not revenue exposure')
+  })
   it('labels allocated countries without a map shape instead of silently omitting them', () => {
     const html = renderToStaticMarkup(<CountryMap positions={positions} compositions={{
       FUND: { weights: { Singapore: '100' }, source: 'test', asOf: null },
