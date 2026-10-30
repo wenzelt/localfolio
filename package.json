@@ -18,7 +18,8 @@
     "import:ghostfolio": "tsx --env-file-if-exists=.env src/cli/import.ts",
     "ledger:add": "tsx --env-file-if-exists=.env src/cli/ledger.ts",
     "migrate:snapshots": "tsx --env-file-if-exists=.env src/cli/migrate.ts",
-    "report:valuation": "tsx --env-file-if-exists=.env src/cli/valuation.ts"
+    "report:valuation": "tsx --env-file-if-exists=.env src/cli/valuation.ts",
+    "mcp": "tsx --env-file-if-exists=.env src/cli/mcp.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
@@ -32,9 +33,11 @@
     "vitest": "^5.0.5"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
     "next": "^16.4.2",
     "postgres": "^3.4.9",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "zod": "4.6.7"
   }
 }
