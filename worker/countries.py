@@ -22,6 +22,8 @@ UPSERT = '''INSERT INTO security_countries (symbol, weights, source, as_of)
     VALUES (%s, %s::jsonb, %s, %s) ON CONFLICT (symbol) DO UPDATE
     SET weights=EXCLUDED.weights, source=EXCLUDED.source,
     as_of=EXCLUDED.as_of, fetched_at=now()'''
+SELECT_SOURCE = 'SELECT source FROM security_countries WHERE symbol = %s'
+FUND_TYPES = ('ETF', 'MUTUALFUND')
 
 
 class CountryTable(HTMLParser):
@@ -88,12 +90,54 @@ def fetch_page(url):
         return response.read(2_000_000).decode('utf-8')
 
 
-def refresh_countries(connection, symbols, fund_isins, ticker_factory=None, fetch=fetch_page, pause=time.sleep):
+def failure_reason(error):
+    return f'HTTP {error.code}' if isinstance(error, HTTPError) else type(error).__name__
+
+
+def look_through_weights(top_holdings, holding_country):
+    """Percent of a fund in each country, counting only the top holdings whose country is known."""
+    if top_holdings is None or 'Holding Percent' not in top_holdings:
+        return {}
+    weights = {}
+    for symbol, fraction in top_holdings['Holding Percent'].items():
+        percent = Decimal(str(fraction)) * 100
+        if not isinstance(symbol, str) or not symbol.strip() or not percent.is_finite() or percent <= 0:
+            continue
+        country = holding_country(symbol.strip())
+        if country:
+            weights[country] = weights.get(country, Decimal(0)) + percent
+    rounded = {country: weight.quantize(Decimal('0.01')) for country, weight in weights.items()}
+    rounded = {country: weight for country, weight in rounded.items() if weight > 0}
+    if sum(rounded.values()) > 100:
+        raise ValueError('Top holdings exceed 100%')
+    return {country: str(weight) for country, weight in rounded.items()}
+
+
+def cached_from_other_source(connection, symbol, source):
+    # A block of its own: a bare read would open a transaction that holds back every later write until the connection closes.
+    with connection.transaction():
+        row = connection.execute(SELECT_SOURCE, (symbol,)).fetchone()
+    return row is not None and row[0] != source
+
+
+def refresh_countries(connection, symbols, fund_isins, ticker_factory=None, fetch=fetch_page, pause=time.sleep, look_through=True):
     if ticker_factory is None:
         import yfinance
         ticker_factory = yfinance.Ticker
     with connection.transaction():
         connection.execute(CREATE_TABLE)
+    holding_countries = {}
+
+    def holding_country(symbol):
+        if symbol not in holding_countries:
+            pause(1)
+            try:
+                holding_countries[symbol] = ticker_factory(symbol).get_info().get('country')
+            except Exception as error:
+                print(f'Country lookup failed for {symbol}: {failure_reason(error)}', file=sys.stderr)
+                holding_countries[symbol] = None
+        return holding_countries[symbol]
+
     count = 0
     for symbol in sorted(set(symbols)):
         try:
@@ -104,18 +148,30 @@ def refresh_countries(connection, symbols, fund_isins, ticker_factory=None, fetc
                 weights = parse_countries(html)
                 as_of = parse_source_date(html)
             else:
-                info = ticker_factory(yahoo_symbol(symbol)).get_info()
-                if info.get('quoteType') != 'EQUITY' or not info.get('country'):
+                quote_symbol = yahoo_symbol(symbol)
+                ticker = ticker_factory(quote_symbol)
+                info = ticker.get_info()
+                if info.get('quoteType') == 'EQUITY' and info.get('country'):
+                    weights = {info['country']: '100'}
+                    source = f'https://finance.yahoo.com/quote/{quote_symbol}/profile/'
+                    as_of = date.today()
+                elif look_through and info.get('quoteType') in FUND_TYPES:
+                    source = f'https://finance.yahoo.com/quote/{quote_symbol}/holdings/'
+                    if cached_from_other_source(connection, symbol, source):
+                        print(f'Country lookup skipped for {symbol}: keeping the composition from another source', file=sys.stderr)
+                        continue
+                    weights = look_through_weights(ticker.funds_data.top_holdings, holding_country)
+                    if not weights:
+                        print(f'Country lookup skipped for {symbol}: no top holding with a known country', file=sys.stderr)
+                        continue
+                    as_of = None
+                else:
                     continue
-                weights = {info['country']: '100'}
-                source = f'https://finance.yahoo.com/quote/{yahoo_symbol(symbol)}/profile/'
-                as_of = date.today()
             with connection.transaction():
                 connection.execute(UPSERT, (symbol, json.dumps(weights), source, as_of))
             count += 1
         except Exception as error:
-            reason = f'HTTP {error.code}' if isinstance(error, HTTPError) else type(error).__name__
-            print(f'Country lookup failed for {symbol}: {reason}', file=sys.stderr)
+            print(f'Country lookup failed for {symbol}: {failure_reason(error)}', file=sys.stderr)
     return count
 
 
@@ -146,7 +202,9 @@ def import_country_weights(connection, supplied):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mapping', type=Path, default=Path(__file__).with_name('country-funds.json'))
-    parser.add_argument('--stocks-only', action='store_true', help='Fetch Yahoo equity headquarters only; never request fund profiles')
+    scope = parser.add_mutually_exclusive_group()
+    scope.add_argument('--stocks-only', action='store_true', help='Fetch Yahoo equity headquarters only; never request fund data')
+    scope.add_argument('--yahoo-only', action='store_true', help='Use Yahoo only: stock headquarters and the countries of fund top holdings; never request justETF')
     parser.add_argument('--import-file', type=Path, help='Store owner-supplied weights from a JSON file; makes no network requests')
     args = parser.parse_args()
     import psycopg
@@ -156,10 +214,10 @@ def main():
             print(f'Country compositions imported: {import_country_weights(connection, supplied)}')
         return
     from worker.refresh import load_activities, plan_refresh
-    mapping = {} if args.stocks_only else json.loads(args.mapping.read_text())
+    mapping = {} if args.stocks_only or args.yahoo_only else json.loads(args.mapping.read_text())
     with psycopg.connect(os.environ.get('DATABASE_URL') or '') as connection:
         symbols = plan_refresh(load_activities(connection), date.today())['symbols']
-        print(f'Country compositions refreshed: {refresh_countries(connection, symbols, mapping)}')
+        print(f'Country compositions refreshed: {refresh_countries(connection, symbols, mapping, look_through=not args.stocks_only)}')
 
 
 if __name__ == '__main__':
