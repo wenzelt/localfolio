@@ -98,7 +98,7 @@ describe('country exposure map with unusable stored weights', () => {
   it('renders the rest of the panel and counts the unusable holding as not broken down', () => {
     const html = renderToStaticMarkup(<CountryMap positions={held} compositions={{ GOOD: good, BAD: bad({ Germany: '70', Japan: '40' }) }} />)
     expect(html).toContain('Germany: 25.00%')
-    expect(html).not.toContain('Japan')
+    expect(html).toContain('Japan: No allocated exposure')
     expect(html).toMatch(/Other \/ not broken down<\/span><span>75\.00%/)
   })
 

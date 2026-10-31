@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { COMPLETE_COVERAGE_PERCENT, countryExposure, weightCoverage } from './country-exposure'
+import { COMPLETE_COVERAGE_PERCENT, countryExposure, usableCompositions, weightCoverage } from './country-exposure'
 import type { CountryComposition } from './country-exposure'
 import { formatEur } from './dashboard-view'
 import { compositionFreshness } from './country-freshness'
@@ -8,14 +8,18 @@ import world from './world-paths.json'
 export function CountryMap({ positions, compositions, hidden = false }: {
   positions: { symbol: string; value: string | null }[]; compositions: Record<string, CountryComposition>; hidden?: boolean
 }) {
-  const exposure = countryExposure(positions, compositions)
+  // One unusable stored row must not take the whole dashboard down: it counts as not broken down and is named below.
+  const { usable, rejected } = usableCompositions(compositions)
+  const exposure = countryExposure(positions, usable)
   const percent = (value: string) => `${Number(value).toFixed(2)}%`
   const byCountry = new Map(exposure.countries.map((country) => [country.country, country]))
   const sources = [...new Set(positions.filter((position) => position.value !== null && Number(position.value) > 0).map((position) => position.symbol))]
+  const invalid = sources.filter((symbol) => Object.hasOwn(rejected, symbol))
   return <section className="card country-exposure" aria-labelledby="country-exposure-title">
     <h2 id="country-exposure-title">Country exposure</h2>
     <p className="muted">Share of priced positions in EUR · Stocks: headquarters country · Funds: reported country weights or the countries of their largest holdings, not revenue exposure. Unpriced positions excluded.</p>
     {exposure.total === '0' ? <p className="empty">No priced open positions</p> : <>
+      {invalid.length > 0 && <p className="negative" role="alert">{`Country weights for ${invalid.join(', ')} are invalid and counted as not broken down. Fix or delete those rows in security_countries.`}</p>}
       <svg className="country-world" viewBox="0 0 720 310" role="img" aria-labelledby="country-map-title">
         <title id="country-map-title">World map of portfolio country exposure. Country percentages are listed below.</title>
         {world.map(({ name, path }) => {
@@ -34,7 +38,9 @@ export function CountryMap({ positions, compositions, hidden = false }: {
         <span>{country.country}{country.country !== 'Other / not broken down' && !world.some((shape) => shape.name === country.country) && ' (not shown on map)'}</span><span>{percent(country.percent)}{!hidden && <> · {formatEur(country.value)}</>}</span>
       </li>)}</ul>
       <details><summary>Sources and dates</summary><p className="muted">Missing weights remain in the grey category, except for holdings whose published weights cover at least 95%, which are treated as complete. Source dates are not live. Country weights older than 90 days are marked stale; a recent fetch does not make old holdings current.</p><ul>{sources.map((symbol) => <li key={symbol}>
-        {!compositions[symbol] || Object.keys(compositions[symbol].weights).length === 0
+        {Object.hasOwn(rejected, symbol)
+          ? <span>{symbol} · Country weights invalid ({rejected[symbol]}); counted as not broken down</span>
+          : !compositions[symbol] || Object.keys(compositions[symbol].weights).length === 0
           ? <span>{symbol} · Country weights unavailable</span>
           : <span>{symbol} · {compositions[symbol].asOf ?? 'Source date unavailable'} · {compositionFreshness(compositions[symbol].asOf, new Date()) === 'stale' ? 'Stale country weights' : compositionFreshness(compositions[symbol].asOf, new Date()) === 'unknown' ? 'Freshness unknown' : 'Current country weights'} · Coverage: {Number(weightCoverage(compositions[symbol].weights)).toFixed(2)}%{Number(weightCoverage(compositions[symbol].weights)) >= Number(COMPLETE_COVERAGE_PERCENT) && ' · scaled to 100%'} · Last fetched: {compositions[symbol].fetchedAt?.slice(0, 10) ?? 'unavailable'} · <a href={compositions[symbol].source} target="_blank" rel="noreferrer">Source</a></span>}
       </li>)}</ul></details>
