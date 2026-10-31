@@ -310,11 +310,11 @@ Operating notes: [Country exposure](country-exposure.md).
 ### Data Findings
 
 - Ledger transactions need separate country composition data; imported exports may not include usable country weights.
-- Yahoo Finance, through `yfinance`, returns a `country` (headquarters) for single stocks only. It returns no country field and no country weights for ETFs or funds. It does list a fund's top holdings, usually about ten, with each holding's share of the fund.
+- Yahoo Finance, through `yfinance`, returns a `country` (headquarters) for single stocks only. It returns no country field and no country weights for ETFs or funds. For some funds it lists up to ten top holdings with each holding's share of the fund (checked 2026-10-31: VOO, MEUD.PA and EXI2.DE yes, CW8.PA none).
 - Portfolios may contain both single stocks and funds; missing weights are shown explicitly.
 - A full per-country look-through for funds needs a source beyond Yahoo. The top holdings give a partial one.
 
-> **Source status:** cached/manual country compositions are supported; live fund-country provider access remains blocked and unverified. A Yahoo top-holdings look-through is implemented and tested with synthetic data; Yahoo could not be reached from the development environment, so live responses are unchecked.
+> **Source status:** cached/manual country compositions are supported; live fund-country provider access remains blocked and unverified. A Yahoo top-holdings look-through is implemented. It was checked live on 2026-10-31 for VOO (United States 39.11 from the top ten) and returns nothing for funds that Yahoo lists no holdings for, such as CW8.PA.
 
 > **Approved:** explicit low-frequency scripted justETF lookup for verified fund ISINs; Yahoo headquarters for stocks. Other and missing weights remain a separate grey category, never redistributed. US-listed funds without a verified country source remain unallocated. No scraping on each browser load or intraday price refresh.
 
