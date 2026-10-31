@@ -68,6 +68,17 @@ describe('README for first-time hosts', () => {
     for (const text of ['port is already allocated', 'Incorrect password', 'DATABASE_URL is required', 'rate limit']) expect(section).toContain(text)
   })
 
+  it('explains the error page: the number is a reference, a stopped database is the usual cause, and how to check and start it', () => {
+    const section = readme().split('## Troubleshooting')[1]?.split('\n## ')[0] ?? ''
+    for (const text of ['Digest', 'docker compose ps', 'docker compose up -d --wait db', 'docker compose --profile app logs app', 'portfolio-db']) expect(section).toContain(text)
+  })
+
+  it('says which services come back by themselves after Docker or the host restarts', () => {
+    const section = readme().split('### Stop, restart and update')[1]?.split('\n#')[0] ?? ''
+    expect(section).toContain('restart automatically')
+    expect(section).toContain('docker compose stop')
+  })
+
   it('links only to files that exist', () => {
     const links = [...readme().matchAll(/\]\((?!https?:|#)([^)#\s]+)/g)].map((match) => match[1])
     expect(links.length).toBeGreaterThan(0)
