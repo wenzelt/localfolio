@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countryExposure, weightCoverage } from './country-exposure'
+import { compositionProblem, countryExposure, usableCompositions, weightCoverage } from './country-exposure'
 
 describe('country exposure', () => {
   it('weights stocks and fund countries by current EUR value without redistributing unknown weight', () => {
@@ -62,5 +62,68 @@ describe('country exposure', () => {
     for (const weights of [{ Germany: '101' }, { Germany: '-1' }]) {
       expect(() => countryExposure([{ symbol: 'X', value: '10' }], { X: { weights, source: 'test', asOf: null } })).toThrow()
     }
+  })
+})
+
+describe('stored composition check', () => {
+  const usable: Record<string, string>[] = [{}, { Germany: '100' }, { Germany: '99.99' }, { Germany: '60.5', Japan: '39.5' }, { Germany: '0' }, { Germany: '33.333333', Japan: '33.333333', France: '33.333333' }]
+  const unusable: [unknown, string][] = [
+    [{ Germany: '101' }, 'more than 100%'],
+    [{ Germany: '60', Japan: '40.01' }, 'more than 100%'],
+    [{ Germany: '100', Japan: '0.000001' }, 'more than 100%'],
+    ...['-1', 'abc', '', '1e2', 'NaN', ' 5', '5%', '.5', '5.', '1,5'].map((weight): [unknown, string] => [{ Germany: weight }, 'plain non-negative number']),
+    [{ Germany: 25 }, 'plain non-negative number'],
+    [{ Germany: null }, 'plain non-negative number'],
+    [{ Germany: { raw: 25 } }, 'plain non-negative number'],
+    ...[null, undefined, 'Germany', ['Germany'], 42].map((weights): [unknown, string] => [weights, 'not a list of countries']),
+  ]
+
+  it('accepts weights the exposure calculation can use', () => {
+    for (const weights of usable) expect(compositionProblem(weights), JSON.stringify(weights)).toBeNull()
+  })
+
+  it('names why weights the calculation would reject cannot be used', () => {
+    for (const [weights, reason] of unusable) expect(compositionProblem(weights), JSON.stringify(weights)).toContain(reason)
+  })
+
+  it('never accepts weights that make the strict calculation throw', () => {
+    for (const weights of [...usable, ...unusable.map(([shape]) => shape)]) {
+      if (compositionProblem(weights) === null) {
+        expect(() => countryExposure([{ symbol: 'X', value: '10' }], { X: { weights: weights as Record<string, string>, source: 'test', asOf: null } }), JSON.stringify(weights)).not.toThrow()
+      }
+    }
+  })
+
+  it('holds for generated weights, with both accepted and rejected cases exercised', () => {
+    let seed = 20261029
+    const next = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32 }
+    const junk = ['', 'abc', '-3', '1e2', 'NaN', ' 7', '5%', '.5', '5.', '1,5']
+    let accepted = 0
+    let rejected = 0
+    for (let round = 0; round < 500; round += 1) {
+      const weights: Record<string, string> = {}
+      const countries = 1 + Math.floor(next() * 6)
+      for (let country = 0; country < countries; country += 1) {
+        weights[`Country ${country}`] = next() < 0.1 ? junk[Math.floor(next() * junk.length)] : (next() * 60).toFixed(Math.floor(next() * 7))
+      }
+      if (compositionProblem(weights) === null) {
+        accepted += 1
+        expect(() => countryExposure([{ symbol: 'X', value: '10' }], { X: { weights, source: 'test', asOf: null } }), JSON.stringify(weights)).not.toThrow()
+      } else {
+        rejected += 1
+      }
+    }
+    expect(accepted).toBeGreaterThan(50)
+    expect(rejected).toBeGreaterThan(50)
+  })
+
+  it('splits stored compositions into usable ones and named problems, leaving the input untouched', () => {
+    const good = { weights: { Germany: '50' }, source: 'test', asOf: null }
+    const input = { GOOD: good, OVER: { ...good, weights: { Germany: '101' } }, NULLED: { ...good, weights: null as unknown as Record<string, string> } }
+    const result = usableCompositions(input)
+    expect(result.usable).toEqual({ GOOD: good })
+    expect(Object.keys(result.rejected)).toEqual(['OVER', 'NULLED'])
+    expect(result.rejected.OVER).toContain('more than 100%')
+    expect(Object.keys(input)).toEqual(['GOOD', 'OVER', 'NULLED'])
   })
 })

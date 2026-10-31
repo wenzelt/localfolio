@@ -248,6 +248,14 @@ describe('country overview', () => {
     expect(html).toContain('Country exposure')
     expect(html.indexOf('Country exposure')).toBeGreaterThan(html.indexOf('Today’s movement'))
   })
+
+  it('keeps the whole dashboard standing when one stored composition is unusable', () => {
+    const daily = [{ accountId: 'broker', accountName: 'Broker', symbol: 'BAD', name: 'Synthetic Fund', value: '200', changePercent: '1', observedOn: '2026-10-21', previousOn: '2026-10-20' }]
+    const html = renderToStaticMarkup(<Dashboard report={report} daily={daily} countries={{ BAD: { weights: { Germany: '70', Japan: '40' }, source: 'https://example.org/bad', asOf: '2026-09-30' } }} />)
+    expect(html).toContain('Portfolio performance')
+    expect(html).toContain('Today’s movement')
+    expect(html).toContain('BAD · Country weights invalid')
+  })
 })
 
 describe('wide screens', () => {
