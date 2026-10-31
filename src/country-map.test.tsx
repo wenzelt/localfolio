@@ -80,3 +80,56 @@ describe('country exposure map', () => {
     expect(renderToStaticMarkup(<CountryMap positions={[]} compositions={{}} />)).toContain('No priced open positions')
   })
 })
+
+describe('country exposure map with unusable stored weights', () => {
+  const held = [{ symbol: 'GOOD', value: '100' }, { symbol: 'BAD', value: '100' }]
+  const good = { weights: { Germany: '50' }, source: 'https://example.org/good', asOf: '2026-09-30' }
+  const bad = (weights: unknown) => ({ weights: weights as Record<string, string>, source: 'https://example.org/bad', asOf: '2026-09-30' })
+  const shapes: [string, unknown][] = [
+    ['more than 100 percent', { Germany: '70', Japan: '40' }],
+    ['a negative weight', { Germany: '-5' }],
+    ['a word instead of a number', { Germany: 'many' }],
+    ['a JSON number instead of text', { Germany: 50 }],
+    ['null weights', null],
+    ['a list instead of countries', ['Germany']],
+    ['text instead of countries', 'Germany'],
+  ]
+
+  it('renders the rest of the panel and counts the unusable holding as not broken down', () => {
+    const html = renderToStaticMarkup(<CountryMap positions={held} compositions={{ GOOD: good, BAD: bad({ Germany: '70', Japan: '40' }) }} />)
+    expect(html).toContain('Germany: 25.00%')
+    expect(html).toContain('Japan: No allocated exposure')
+    expect(html).toMatch(/Other \/ not broken down<\/span><span>75\.00%/)
+  })
+
+  it('names the holding and the reason, in the list and in a visible warning', () => {
+    const html = renderToStaticMarkup(<CountryMap positions={held} compositions={{ GOOD: good, BAD: bad({ Germany: '70', Japan: '40' }) }} />)
+    expect(html).toContain('BAD · Country weights invalid')
+    expect(html).toContain('more than 100%')
+    expect(html).toMatch(/role="alert"[^>]*>Country weights for BAD are invalid/)
+  })
+
+  it('survives every unusable shape and still shows the good holding', () => {
+    for (const [name, weights] of shapes) {
+      const html = renderToStaticMarkup(<CountryMap positions={held} compositions={{ GOOD: good, BAD: bad(weights) }} />)
+      expect(html, name).toContain('Germany: 25.00%')
+      expect(html, name).toContain('BAD · Country weights invalid')
+    }
+  })
+
+  it('warns once for several unusable holdings and lists each by name', () => {
+    const html = renderToStaticMarkup(<CountryMap positions={[...held, { symbol: 'WORSE', value: '10' }]} compositions={{ GOOD: good, BAD: bad({ Germany: '101' }), WORSE: bad(null) }} />)
+    expect(html.match(/role="alert"/g)).toHaveLength(1)
+    expect(html).toContain('Country weights for BAD, WORSE are invalid')
+  })
+
+  it('does not warn about unusable weights for a symbol that is no longer held', () => {
+    const html = renderToStaticMarkup(<CountryMap positions={[{ symbol: 'GOOD', value: '100' }]} compositions={{ GOOD: good, BAD: bad({ Germany: '101' }) }} />)
+    expect(html).not.toContain('role="alert"')
+    expect(html).not.toContain('invalid')
+  })
+
+  it('shows no warning when every stored composition is usable', () => {
+    expect(renderToStaticMarkup(<CountryMap positions={held} compositions={{ GOOD: good, BAD: good }} />)).not.toContain('role="alert"')
+  })
+})
