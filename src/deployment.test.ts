@@ -107,6 +107,8 @@ function service(name: string): string {
 describe('compose service contract', () => {
   const longRunning = ['db', 'app', 'scheduler', 'live']
   const databaseClients = ['app', 'worker', 'scheduler', 'live']
+  // Compose's own substitution syntax, built in two parts so the linter does not take it for a broken template string.
+  const passwordFromEnv = '$' + '{POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}'
 
   it('restarts every long-running service after Docker or the host restarts, so the app never outlives its database', () => {
     for (const name of longRunning) expect(service(name), name).toMatch(/^ {4}restart: unless-stopped$/m)
@@ -137,10 +139,10 @@ describe('compose service contract', () => {
 
   it('gives the database and every client the same name, user and password source', () => {
     const db = service('db')
-    for (const line of ['POSTGRES_USER: portfolio', 'POSTGRES_DB: portfolio', 'POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}']) expect(db).toContain(line)
+    for (const line of ['POSTGRES_USER: portfolio', 'POSTGRES_DB: portfolio', `POSTGRES_PASSWORD: ${passwordFromEnv}`]) expect(db).toContain(line)
     for (const name of databaseClients) {
       const block = service(name)
-      for (const line of ['PGHOST: db', 'PGUSER: portfolio', 'PGDATABASE: portfolio', 'PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}']) expect(block, name).toContain(line)
+      for (const line of ['PGHOST: db', 'PGUSER: portfolio', 'PGDATABASE: portfolio', `PGPASSWORD: ${passwordFromEnv}`]) expect(block, name).toContain(line)
     }
   })
 
