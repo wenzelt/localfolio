@@ -4,8 +4,6 @@ Release notes and validation: [v0.2.0](docs/releases/v0.2.0.md) (earlier: [v0.1.
 
 A self-hosted, single-owner portfolio tracker inspired by Ghostfolio. It reads a Ghostfolio JSON export, caches Yahoo Finance prices and USD/EUR rates with a Python `yfinance` worker, and shows EUR performance on a password-protected dashboard. Scope and acceptance criteria: [docs/user-stories.md](docs/user-stories.md).
 
-Optional AI-client integration: [local MCP server setup and write safeguards](docs/mcp.md).
-
 ## Setup
 
 You do not need to write code to use Localfolio. **Self-hosted** means the app and your financial records live on a computer you control. That computer must be running when you want to use the app.
