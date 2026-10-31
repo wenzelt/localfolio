@@ -14,7 +14,7 @@ export function CountryMap({ positions, compositions, hidden = false }: {
   const sources = [...new Set(positions.filter((position) => position.value !== null && Number(position.value) > 0).map((position) => position.symbol))]
   return <section className="card country-exposure" aria-labelledby="country-exposure-title">
     <h2 id="country-exposure-title">Country exposure</h2>
-    <p className="muted">Share of priced positions in EUR · Stocks: headquarters country · Funds: reported country weights or the countries of their largest holdings, not revenue exposure. Unpriced positions excluded.</p>
+    <p className="muted">Share of priced positions in EUR · Stocks: headquarters country · Funds: reported country weights, not revenue exposure. Unpriced positions excluded.</p>
     {exposure.total === '0' ? <p className="empty">No priced open positions</p> : <>
       <svg className="country-world" viewBox="0 0 720 310" role="img" aria-labelledby="country-map-title">
         <title id="country-map-title">World map of portfolio country exposure. Country percentages are listed below.</title>

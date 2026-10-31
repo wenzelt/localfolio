@@ -310,21 +310,19 @@ Operating notes: [Country exposure](country-exposure.md).
 ### Data Findings
 
 - Ledger transactions need separate country composition data; imported exports may not include usable country weights.
-- Yahoo Finance, through `yfinance`, returns a `country` (headquarters) for single stocks only. It returns no country field and no country weights for ETFs or funds. It does list a fund's top holdings, usually about ten, with each holding's share of the fund.
+- Yahoo Finance, through `yfinance`, returns a `country` (headquarters) for single stocks only. It returns no country field and no country weights for ETFs or funds.
 - Portfolios may contain both single stocks and funds; missing weights are shown explicitly.
-- A full per-country look-through for funds needs a source beyond Yahoo. The top holdings give a partial one.
+- A per-country look-through for funds therefore needs a source beyond what the worker fetches today.
 
-> **Source status:** cached/manual country compositions are supported; live fund-country provider access remains blocked and unverified. A Yahoo top-holdings look-through is implemented and tested with synthetic data; Yahoo could not be reached from the development environment, so live responses are unchecked.
+> **Source status:** cached/manual country compositions are supported; live fund-country provider access remains blocked and unverified.
 
 > **Approved:** explicit low-frequency scripted justETF lookup for verified fund ISINs; Yahoo headquarters for stocks. Other and missing weights remain a separate grey category, never redistributed. US-listed funds without a verified country source remain unallocated. No scraping on each browser load or intraday price refresh.
-
-> **Approved (extension):** for funds with no other cached source, the worker may use Yahoo's top holdings and each holding's headquarters country. Only the listed holdings count and the rest stays in the grey category. This also applies to US-listed funds.
 
 ### Acceptance Criteria
 
 - The map is shaded by each country's share of the current EUR portfolio value, with a fixed legend.
 - A single stock counts fully toward its headquarters country.
-- A fund counts toward countries only by its recorded country weights; value without weights is shown as "Not broken down", never spread by guesswork or assigned to the fund's listing or domicile country. Weights taken from a fund's top holdings are recorded weights that cover only those holdings.
+- A fund counts toward countries only by its recorded country weights; value without weights is shown as "Not broken down", never spread by guesswork or assigned to the fund's listing or domicile country.
 - Country weights record their source and as-of date, and stale or missing weights are visible on the page.
 
 > **Implementation status:** missing weights are named by holding. Source dates older than 90 UTC calendar days are marked stale; missing dates are labelled unknown. Last-fetch dates are shown separately. Tested aliases (United States of America, Czech Republic) normalize before aggregation; countries absent from the map remain in the text list with an explicit label. A populated cached flow is browser-verified at 1280px and 375px, including map/list agreement, metadata, hide mode and no horizontal overflow. **Operational blocker:** permitted live fund-data access and real cache/deployment remain unresolved after the documented provider 403; synthetic verification does not close that blocker. See [release validation](releases/v0.1.0.md).
