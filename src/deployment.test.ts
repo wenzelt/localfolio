@@ -93,3 +93,58 @@ describe('operator documentation', () => {
     for (const name of ['test:coverage', 'typecheck', 'lint']) expect(scripts[name]).toBeTruthy()
   })
 })
+
+// One service's block in compose.yaml: its "  name:" line and everything indented under it.
+function service(name: string): string {
+  const lines = read('compose.yaml').split('\n')
+  const start = lines.indexOf(`  ${name}:`)
+  if (start === -1) throw new Error(`compose.yaml has no ${name} service`)
+  let end = start + 1
+  while (end < lines.length && (lines[end] === '' || lines[end].startsWith('    '))) end += 1
+  return lines.slice(start, end).join('\n')
+}
+
+describe('compose service contract', () => {
+  const longRunning = ['db', 'app', 'scheduler', 'live']
+  const databaseClients = ['app', 'worker', 'scheduler', 'live']
+
+  it('restarts every long-running service after Docker or the host restarts, so the app never outlives its database', () => {
+    for (const name of longRunning) expect(service(name), name).toMatch(/^ {4}restart: unless-stopped$/m)
+  })
+
+  it('does not restart the one-shot worker, which runs only when asked', () => {
+    expect(service('worker')).not.toContain('restart:')
+  })
+
+  it('starts the database first and waits until it is healthy', () => {
+    for (const name of databaseClients) expect(service(name), name).toMatch(/depends_on:\n {6}db:\n {8}condition: service_healthy/)
+    expect(service('db')).toContain('pg_isready -U portfolio -d portfolio')
+  })
+
+  it('keeps the data in a named volume that a rebuild does not remove', () => {
+    expect(service('db')).toContain('- portfolio-db:/var/lib/postgresql/data')
+    expect(read('compose.yaml')).toMatch(/^volumes:\n {2}portfolio-db:\s*$/m)
+    expect(read('compose.yaml')).not.toContain('tmpfs')
+  })
+
+  it('pins the database image to a major version, so a rebuild cannot move the data directory to a newer server', () => {
+    expect(service('db')).toMatch(/^ {4}image: postgres:\d+(-alpine)?$/m)
+  })
+
+  it('publishes the database port on loopback only', () => {
+    expect(service('db')).toContain('"127.0.0.1:55432:5432"')
+  })
+
+  it('gives the database and every client the same name, user and password source', () => {
+    const db = service('db')
+    for (const line of ['POSTGRES_USER: portfolio', 'POSTGRES_DB: portfolio', 'POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}']) expect(db).toContain(line)
+    for (const name of databaseClients) {
+      const block = service(name)
+      for (const line of ['PGHOST: db', 'PGUSER: portfolio', 'PGDATABASE: portfolio', 'PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}']) expect(block, name).toContain(line)
+    }
+  })
+
+  it('clears DATABASE_URL in containers, so a host-side value pointing at 127.0.0.1 cannot override the PG settings', () => {
+    for (const name of databaseClients) expect(service(name), name).toContain('DATABASE_URL: ""')
+  })
+})
