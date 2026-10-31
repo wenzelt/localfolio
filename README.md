@@ -112,6 +112,8 @@ Start them again:
 docker compose --profile app up -d
 ```
 
+After Docker or the host restarts, the database, the web app and the optional `live` and `scheduler` services restart automatically. Anything you stopped yourself, for example with `docker compose stop` or `docker compose --profile app stop`, stays stopped until you start it again.
+
 To update a Git-cloned installation, make a backup first, then run:
 
 ```sh
@@ -159,6 +161,7 @@ For installations that imported before the normalized ledger existed, `npm run m
 
 ## Troubleshooting
 
+- **A page says `This page could not load` and shows an error reference (older builds show `Application error` with a `Digest` number):** the usual cause is that the database is not running, often after Docker or the host restarted. Run `docker compose ps`. If `db` is not running, start it with `docker compose up -d --wait db` and reload. Your data is in the `portfolio-db` volume, which a stop does not delete. If `db` is running, the app log names the cause: run `docker compose --profile app logs app --tail 50` and look for the line with the same number.
 - **`port is already allocated` on 3000 or 55432:** another program uses the port. Stop it, or change the host port in `compose.yaml`.
 - **`Incorrect password` on the login page:** use the `APP_PASSWORD` from `.env`. After changing `.env`, run `docker compose --profile app up -d` again so the container picks it up.
 - **`docker` is not recognised or cannot connect:** check that Docker is installed and running. Reopen the terminal after installing it.
