@@ -8,8 +8,9 @@ import type { RateRow } from './performance'
 import { readPriceHistory } from './price-history'
 import type { HistoricalPrice } from './price-history'
 
+// One position per symbol: it does not matter which account holds it, so the accounts are only named.
 export type DailyMovementItem = {
-  accountId: string; accountName: string; symbol: string
+  accountNames: string[]; symbol: string
   value: string | null; change: string | null; changePercent: string | null; observedOn: string | null; previousOn: string | null
 }
 type MovementTrade = { accountId: string; symbol: string; type: 'BUY' | 'SELL'; quantity: string; date: string }
@@ -43,31 +44,40 @@ export function dailyMovement(
     held.set(key, trade.type === 'BUY' ? add(held.get(key) ?? zero, quantity) : subtract(held.get(key) ?? zero, quantity))
   }
 
-  return input.accounts.flatMap((account) => {
-    const symbols = [...new Set(input.trades.filter((trade) => trade.accountId === account.id).map((trade) => trade.symbol))].sort()
-    return symbols.flatMap((symbol): DailyMovementItem[] => {
+  // Each account is still checked on its own, so a sale beyond one account's holding is never hidden by another account's shares.
+  const holdings = new Map<string, { accountNames: string[]; quantity: Fraction }>()
+  for (const account of input.accounts) {
+    for (const symbol of new Set(input.trades.filter((trade) => trade.accountId === account.id).map((trade) => trade.symbol))) {
       const quantity = held.get(JSON.stringify([account.id, symbol])) ?? zero
       if (quantity.numerator < 0n) throw new Error('Sold more than held')
-      if (quantity.numerator === 0n) return []
-      const identity = { accountId: account.id, accountName: account.name, symbol }
-      const bars = barsBySymbol.get(symbol) ?? []
-      const newest = latest(bars, asOf)
-      if (newest === undefined) return [{ ...identity, value: null, change: null, changePercent: null, observedOn: null, previousOn: null }]
-      const close = decimalToFraction(newest.close)
-      const rate = newest.currency === 'EUR' ? decimalToFraction('1') : latest(rates, asOf)?.eurPerUsd
-      const previous = bars[bars.indexOf(newest) - 1]
-      const reference = previous && gapInDays(previous.observedOn, newest.observedOn) <= maxGapDays && previous.currency === newest.currency ? previous : undefined
-      const base = reference && decimalToFraction(reference.close)
-      return [{
-        ...identity,
-        value: rate === undefined ? null : formatFraction(multiply(multiply(quantity, close), rate)),
-        // The session's gain in EUR: held quantity times the price move, at the same rate as the value.
-        change: rate === undefined || base === undefined || base.numerator === 0n ? null : formatFraction(multiply(multiply(quantity, subtract(close, base)), rate)),
-        changePercent: base === undefined || base.numerator === 0n ? null : formatFraction(multiply(divide(subtract(close, base), base), hundred)),
-        observedOn: newest.observedOn,
-        previousOn: reference?.observedOn ?? null,
-      }]
-    })
+      if (quantity.numerator === 0n) continue
+      const entry = holdings.get(symbol) ?? { accountNames: [], quantity: zero }
+      holdings.set(symbol, { accountNames: [...entry.accountNames, account.name], quantity: add(entry.quantity, quantity) })
+    }
+  }
+
+  return [...holdings.keys()].sort().flatMap((symbol): DailyMovementItem[] => {
+    const holding = holdings.get(symbol)
+    if (holding === undefined) return []
+    const { accountNames, quantity } = holding
+    const identity = { accountNames, symbol }
+    const bars = barsBySymbol.get(symbol) ?? []
+    const newest = latest(bars, asOf)
+    if (newest === undefined) return [{ ...identity, value: null, change: null, changePercent: null, observedOn: null, previousOn: null }]
+    const close = decimalToFraction(newest.close)
+    const rate = newest.currency === 'EUR' ? decimalToFraction('1') : latest(rates, asOf)?.eurPerUsd
+    const previous = bars[bars.indexOf(newest) - 1]
+    const reference = previous && gapInDays(previous.observedOn, newest.observedOn) <= maxGapDays && previous.currency === newest.currency ? previous : undefined
+    const base = reference && decimalToFraction(reference.close)
+    return [{
+      ...identity,
+      value: rate === undefined ? null : formatFraction(multiply(multiply(quantity, close), rate)),
+      // The session's gain in EUR: held quantity times the price move, at the same rate as the value.
+      change: rate === undefined || base === undefined || base.numerator === 0n ? null : formatFraction(multiply(multiply(quantity, subtract(close, base)), rate)),
+      changePercent: base === undefined || base.numerator === 0n ? null : formatFraction(multiply(divide(subtract(close, base), base), hundred)),
+      observedOn: newest.observedOn,
+      previousOn: reference?.observedOn ?? null,
+    }]
   })
 }
 
