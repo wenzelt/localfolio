@@ -136,8 +136,8 @@ describe('dashboard rendering', () => {
 
   describe('today’s portfolio movement', () => {
     const daily = [
-      { accountId: 'a', accountName: 'Broker', symbol: 'AAA', value: '110', changePercent: '10', observedOn: '2026-10-21', previousOn: '2026-10-20' },
-      { accountId: 'a', accountName: 'Broker', symbol: 'BBB', value: '95', changePercent: '-5', observedOn: '2026-10-21', previousOn: '2026-10-20' },
+      { accountNames: ['Broker'], symbol: 'AAA', value: '110', changePercent: '10', observedOn: '2026-10-21', previousOn: '2026-10-20' },
+      { accountNames: ['Broker'], symbol: 'BBB', value: '95', changePercent: '-5', observedOn: '2026-10-21', previousOn: '2026-10-20' },
     ]
 
     it('shows today’s EUR change and percentage with its date, whatever chart timeframe is selected', () => {
@@ -250,7 +250,7 @@ describe('country overview', () => {
   })
 
   it('keeps the whole dashboard standing when one stored composition is unusable', () => {
-    const daily = [{ accountId: 'broker', accountName: 'Broker', symbol: 'BAD', name: 'Synthetic Fund', value: '200', changePercent: '1', observedOn: '2026-10-21', previousOn: '2026-10-20' }]
+    const daily = [{ accountNames: ['Broker'], symbol: 'BAD', name: 'Synthetic Fund', value: '200', changePercent: '1', observedOn: '2026-10-21', previousOn: '2026-10-20' }]
     const html = renderToStaticMarkup(<Dashboard report={report} daily={daily} countries={{ BAD: { weights: { Germany: '70', Japan: '40' }, source: 'https://example.org/bad', asOf: '2026-09-30' } }} />)
     expect(html).toContain('Portfolio performance')
     expect(html).toContain('Today’s movement')
@@ -270,10 +270,11 @@ describe('wide screens', () => {
 
 describe('single list of positions', () => {
   it('relies on the movement list instead of repeating a Positions section below it', () => {
-    const daily = [{ accountId: 'broker', accountName: 'Broker', symbol: 'OPEN', name: 'Synthetic Open Fund', value: '200', changePercent: '1', observedOn: '2026-10-21', previousOn: '2026-10-20' }]
+    const daily = [{ accountNames: ['Broker'], symbol: 'OPEN', name: 'Synthetic Open Fund', value: '200', changePercent: '1', observedOn: '2026-10-21', previousOn: '2026-10-20' }]
     const html = renderToStaticMarkup(<Dashboard report={report} daily={daily} />)
     expect(html).not.toContain('<h2>Positions</h2>')
-    expect(html).toContain('account=broker&amp;symbol=OPEN&amp;period=MAX&amp;hide=0')
+    expect(html).toContain('href="/?symbol=OPEN&amp;period=MAX&amp;hide=0"')
+    expect(html).not.toContain('account=')
     expect(html).toContain('Synthetic Open Fund')
   })
 })

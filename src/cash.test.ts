@@ -3,13 +3,20 @@ import { describe, expect, it } from 'vitest'
 import { calculateCash, withCash } from './cash'
 
 describe('withCash', () => {
-  const stock = { accountId: 'a', accountName: 'Broker', symbol: 'AAA', name: 'Alpha', value: '300', changePercent: '2', observedOn: '2026-10-21', previousOn: '2026-10-20' }
+  const stock = { accountNames: ['Broker'], symbol: 'AAA', name: 'Alpha', value: '300', changePercent: '2', observedOn: '2026-10-21', previousOn: '2026-10-20' }
 
   it('appends a Cash position with a fixed EUR 0 value after the other positions', () => {
     const items = withCash([stock])
     expect(items[0]).toEqual(stock)
     expect(items).toHaveLength(2)
     expect(items[1]).toMatchObject({ symbol: 'CASH', name: 'Cash', value: '0', kind: 'cash' })
+  })
+
+  it('belongs to no account', () => {
+    const [, cash] = withCash([stock])
+    expect(cash).toMatchObject({ accountNames: [] })
+    expect(cash).not.toHaveProperty('accountId')
+    expect(cash).not.toHaveProperty('accountName')
   })
 
   it('leaves an empty portfolio empty', () => {
