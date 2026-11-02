@@ -10,7 +10,9 @@ const secret = 's'.repeat(32)
 const now = Date.UTC(2026, 2, 2, 8, 30)
 const cookie = `session=${signSession(secret, now, 60_000)}`
 const request = (headers: Record<string, string> = { cookie }) => new Request('http://localhost/api/transactions/export', { headers })
-const bom = '﻿'
+// Response.text() drops a leading byte order mark, so its presence is checked on the raw bytes.
+const startsWithByteOrderMark = async (response: Response) =>
+  [...new Uint8Array(await response.clone().arrayBuffer()).slice(0, 3)].join() === [0xef, 0xbb, 0xbf].join()
 
 describe('exporting transactions', () => {
   it('downloads every transaction as a CSV file named after the day', async () => {
@@ -28,9 +30,11 @@ describe('exporting transactions', () => {
       expect(response.headers.get('content-type')).toBe('text/csv; charset=utf-8')
       expect(response.headers.get('content-disposition')).toBe('attachment; filename="localfolio-transactions-2026-03-02.csv"')
       expect(response.headers.get('cache-control')).toBe('no-store')
+      // Excel needs the byte order mark to read accents and euro signs as UTF-8.
+      expect(await startsWithByteOrderMark(response)).toBe(true)
       // Oldest first, whichever order they were entered in.
       expect(await response.text()).toBe([
-        `${bom}${transactionsHeader}`,
+        transactionsHeader,
         '2026-01-01T00:00:00.000Z,Savings,DEPOSIT,,1,500,0,USD,,',
         '2026-01-02T00:00:00.000Z,Broker,BUY,VWCE.DE,12.5,100.25,1.5,EUR,first lot,core',
         '2026-02-03T00:00:00.000Z,Broker,SELL,VWCE.DE,2.5,110,0,EUR,,',
@@ -52,7 +56,8 @@ describe('exporting transactions', () => {
     await withIsolatedDatabase(async (sql) => {
       const response = await transactionsExport(request(), { sql, secret, now })
       expect(response.status).toBe(200)
-      expect(await response.text()).toBe(`${bom}${transactionsHeader}\r\n`)
+      expect(await startsWithByteOrderMark(response)).toBe(true)
+      expect(await response.text()).toBe(`${transactionsHeader}\r\n`)
       const [{ name }] = await sql`SELECT to_regclass('accounts') AS name`
       expect(name).toBeNull()
     })
