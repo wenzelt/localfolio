@@ -52,8 +52,9 @@ describe('dashboard rendering', () => {
     expect(html).toContain('Quantity')
     expect(html).toContain('€20.00')
     expect(html).toContain('Back to portfolio')
-    expect(html).toContain('href="/?symbol=EXAMPLE&amp;period=MAX&amp;hide=1"')
-    expect(html).not.toContain('account=')
+    const toggle = html.match(/<a [^>]*class="privacy-toggle"[^>]*>/)?.[0] ?? ''
+    expect(toggle).toContain('href="/?symbol=EXAMPLE&amp;period=MAX&amp;hide=1"')
+    expect(toggle).not.toContain('account=')
   })
 
   it('masks quantity and cost basis in the detail view when values are hidden', () => {

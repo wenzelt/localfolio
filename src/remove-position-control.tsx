@@ -3,14 +3,15 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-export function RemovePositionControl({ accountId, accountName, symbol }: { accountId: string; accountName: string; symbol: string }) {
+// Removal stays per account: it deletes that account's trades. With several holders each control names its account.
+export function RemovePositionControl({ accountId, accountName, symbol, named = false }: { accountId: string; accountName: string; symbol: string; named?: boolean }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [confirmation, setConfirmation] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const label = `Type ${symbol} to confirm`
-  if (!open) return <button type="button" className="quiet" onClick={() => setOpen(true)}>Remove position</button>
+  if (!open) return <button type="button" className="quiet" onClick={() => setOpen(true)}>{named ? `Remove from ${accountName}` : 'Remove position'}</button>
   return <section aria-label="Remove position" className="card">
     <h2>Remove {symbol} from {accountName}?</h2>
     <p>This permanently removes all buys, sells and dividends for this symbol in this account. Historical performance will change. This is not a sale and cannot be undone here. Make a backup first.</p>
