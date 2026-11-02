@@ -13,14 +13,14 @@ export type CashActivity = {
 const cashEur = '0'
 
 type CashItem = {
-  accountId: string; accountName: string; symbol: string; name: string; kind: 'cash'
+  accountNames: string[]; symbol: string; name: string; kind: 'cash'
   value: string; changePercent: string; observedOn: null; previousOn: null
 }
 
 // Appends the cash position after the others; an empty portfolio stays empty so its empty state still shows.
 export function withCash<T extends object>(items: T[]): (T | CashItem)[] {
   if (items.length === 0) return items
-  return [...items, { accountId: 'cash', accountName: 'Cash', symbol: 'CASH', name: 'Cash', kind: 'cash',
+  return [...items, { accountNames: [], symbol: 'CASH', name: 'Cash', kind: 'cash',
     value: cashEur, changePercent: '0', observedOn: null, previousOn: null }]
 }
 
