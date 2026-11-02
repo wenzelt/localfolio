@@ -1,4 +1,6 @@
 import type { Sql } from 'postgres'
+import { add, decimalToFraction, divide, formatFraction, subtract } from './fraction'
+import type { Fraction } from './fraction'
 import { calculatePosition } from './ledger'
 import { readLedger } from './ledger-store'
 import type { LedgerAccount, LedgerActivity } from './ledger-store'
@@ -47,4 +49,34 @@ export function positionReport(
 
 export async function readPositionReport(sql: Sql, eurPerUsdByDate?: Record<string, string>) {
   return positionReport(await readLedger(sql), eurPerUsdByDate)
+}
+
+const zero = decimalToFraction('0')
+const signed = (value: string): Fraction => value.startsWith('-') ? subtract(zero, decimalToFraction(value.slice(1))) : decimalToFraction(value)
+
+// One position per symbol across accounts, so it does not matter which account holds it.
+// Excluded accounts are left out, as everywhere on the dashboard. Accounts that sold out are not named, but their realised gains count.
+export function combinePositions(positions: ReturnType<typeof positionReport>) {
+  const included = positions.filter((position) => !position.isExcluded)
+  return [...new Set(included.map((position) => position.symbol))].sort().map((symbol) => {
+    const parts = included.filter((position) => position.symbol === symbol)
+    const calculated = parts.flatMap((part) => part.status === 'calculated' ? [part] : [])
+    const accounts = parts.filter((part) => part.status !== 'calculated' || signed(part.quantity).numerator > 0n)
+      .map((part) => ({ id: part.accountId, name: part.accountName }))
+    // A partial sum would mislead: with any account unpriced, or in another currency, there is no combined figure.
+    if (calculated.length < parts.length || new Set(calculated.map((part) => part.currency)).size > 1) {
+      return { symbol, accounts, status: 'historical-fx-required' as const }
+    }
+    const total = (field: 'quantity' | 'invested' | 'realizedGain') => calculated.reduce((sum, part) => add(sum, signed(part[field])), zero)
+    const quantity = total('quantity')
+    const invested = total('invested')
+    const natives = calculated.map((part) => part.nativeInvested)
+    const nativeInvested = natives.every((native) => native !== undefined)
+      ? { nativeInvested: formatFraction(natives.reduce<Fraction>((sum, native) => add(sum, signed(native ?? '0')), zero)) } : {}
+    return {
+      symbol, accounts, status: 'calculated' as const, currency: calculated[0].currency,
+      quantity: formatFraction(quantity), averageCost: quantity.numerator > 0n ? formatFraction(divide(invested, quantity)) : '0',
+      invested: formatFraction(invested), realizedGain: formatFraction(total('realizedGain')), ...nativeInvested,
+    }
+  })
 }

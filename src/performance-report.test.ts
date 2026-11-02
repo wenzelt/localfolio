@@ -118,7 +118,8 @@ describe('performance report from the database', () => {
         expect(report).toMatchObject({ from: '1980-01-02', to: '1980-01-10', value: '182' })
         expect(report?.series).toHaveLength(9)
         expect(report?.series[0]).toMatchObject({ date: '1980-01-02', value: '100' })
-        expect(report?.series.find((day) => day.date === '1980-01-06')).toMatchObject({ value: '148' })
+        // On the second account's first day the shares of both accounts are worth 10 * 12 + 4 * 12.
+        expect(report?.series.find((day) => day.date === '1980-01-06')).toMatchObject({ value: '168' })
       })
     })
 
