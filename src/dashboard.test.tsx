@@ -45,19 +45,20 @@ describe('dashboard rendering', () => {
 
   it('shows a scoped heading, quantity, cost basis and back link', () => {
     const html = renderToStaticMarkup(<Dashboard report={report} position={{
-      accountId: 'broker', accountName: 'Broker', symbol: 'EXAMPLE', isExcluded: false, status: 'calculated', quantity: '2', averageCost: '10', invested: '20', realizedGain: '0', currency: 'EUR',
+      symbol: 'EXAMPLE', accounts: [{ id: 'broker', name: 'Broker' }], status: 'calculated', quantity: '2', averageCost: '10', invested: '20', realizedGain: '0', currency: 'EUR',
     }} />)
     expect(html).toContain('<h1>EXAMPLE</h1>')
     expect(html).toContain('Broker')
     expect(html).toContain('Quantity')
     expect(html).toContain('€20.00')
     expect(html).toContain('Back to portfolio')
-    expect(html).toContain('account=broker&amp;symbol=EXAMPLE&amp;period=MAX&amp;hide=1')
+    expect(html).toContain('href="/?symbol=EXAMPLE&amp;period=MAX&amp;hide=1"')
+    expect(html).not.toContain('account=')
   })
 
   it('masks quantity and cost basis in the detail view when values are hidden', () => {
     const html = renderToStaticMarkup(<Dashboard report={report} hidden position={{
-      accountId: 'broker', accountName: 'Broker', symbol: 'EXAMPLE', isExcluded: false, status: 'calculated', quantity: '2', averageCost: '10', invested: '20', realizedGain: '0', currency: 'EUR',
+      symbol: 'EXAMPLE', accounts: [{ id: 'broker', name: 'Broker' }], status: 'calculated', quantity: '2', averageCost: '10', invested: '20', realizedGain: '0', currency: 'EUR',
     }} />)
     expect(html).toContain('Quantity')
     expect(html).not.toContain('€20.00')
@@ -67,7 +68,7 @@ describe('dashboard rendering', () => {
   describe('native USD figures', () => {
     const usdReport = { ...report, series: [...report.series.slice(0, 1),
       { ...report.series[1], price: { close: '90.5', currency: 'USD' as const, date: '2026-01-01' } }] }
-    const usdPosition = { accountId: 'broker', accountName: 'Broker', symbol: 'EXAMPLE', isExcluded: false, status: 'calculated' as const,
+    const usdPosition = { symbol: 'EXAMPLE', accounts: [{ id: 'broker', name: 'Broker' }], status: 'calculated' as const,
       quantity: '2', averageCost: '90', invested: '162', realizedGain: '0', currency: 'EUR' as const, nativeInvested: '180' }
 
     it('shows the USD cost basis and USD market value next to the EUR figures', () => {
@@ -102,7 +103,7 @@ describe('dashboard rendering', () => {
 
   it('explains that historical FX is required instead of showing figures for a mixed-currency position', () => {
     const html = renderToStaticMarkup(<Dashboard report={report} position={{
-      accountId: 'broker', accountName: 'Broker', symbol: 'MIXED', isExcluded: false, status: 'historical-fx-required',
+      symbol: 'MIXED', accounts: [{ id: 'broker', name: 'Broker' }], status: 'historical-fx-required',
     }} />)
     expect(html).toContain('Historical FX required to calculate this position.')
     expect(html).not.toContain('Quantity')
@@ -235,7 +236,7 @@ describe('dashboard rendering', () => {
 
  describe('investment display names', () => {
   it('shows a readable name in the detail heading, retaining the symbol', () => {
-    const position = { accountId: 'broker', accountName: 'Broker', symbol: 'CODE123', name: 'Synthetic World Equity', isExcluded: false, status: 'historical-fx-required' as const }
+    const position = { symbol: 'CODE123', accounts: [{ id: 'broker', name: 'Broker' }], name: 'Synthetic World Equity', status: 'historical-fx-required' as const }
     const detail = renderToStaticMarkup(<Dashboard report={report} position={position} />)
     expect(detail).toContain('<h1>Synthetic World Equity</h1>')
     expect(detail).toContain('CODE123')
@@ -344,7 +345,7 @@ describe('interface styling contract', () => {
 })
 
 describe('entry points for adding a buy', () => {
-  const holding = { accountId: 'broker 1', accountName: 'Broker', symbol: 'VWCE.DE', isExcluded: false, status: 'calculated' as const, quantity: '2', averageCost: '10', invested: '20', realizedGain: '0', currency: 'EUR' }
+  const holding = { symbol: 'VWCE.DE', accounts: [{ id: 'broker 1', name: 'Broker' }], status: 'calculated' as const, quantity: '2', averageCost: '10', invested: '20', realizedGain: '0', currency: 'EUR' }
 
   it('offers an Add buy link in the header of the overview', () => {
     expect(renderToStaticMarkup(<Dashboard report={report} />)).toContain('<a class="quiet add-buy" href="/buy">Add buy</a>')
@@ -359,9 +360,54 @@ describe('entry points for adding a buy', () => {
     expect(renderToStaticMarkup(<Dashboard report={report} position={holding} />)).not.toContain('overview-buy')
   })
 
-  it('offers to increase a position, with the account and symbol already chosen', () => {
+  it('offers to increase a position held in one account, with the account and symbol already chosen', () => {
     const html = renderToStaticMarkup(<Dashboard report={report} position={holding} />)
     expect(html).toContain('href="/buy?account=broker%201&amp;symbol=VWCE.DE"')
     expect(html).toContain('Buy more')
+  })
+})
+
+describe('a position held in several accounts', () => {
+  const calculated = { status: 'calculated' as const, quantity: '14', averageCost: '150', invested: '2100', realizedGain: '0', currency: 'EUR' }
+  const shared = { symbol: 'VWCE.DE', accounts: [{ id: 'one', name: 'Broker' }, { id: 'two', name: 'Other' }], ...calculated }
+  const alone = { symbol: 'VWCE.DE', accounts: [{ id: 'one', name: 'Broker' }], ...calculated }
+  const closed = { symbol: 'VWCE.DE', accounts: [], ...calculated, quantity: '0', invested: '0', averageCost: '0' }
+  const page = (position: Parameters<typeof Dashboard>[0]['position'], hidden = false) => renderToStaticMarkup(<Dashboard report={report} position={position} hidden={hidden} />)
+
+  it('names every account under the heading, as one position', () => {
+    expect(page(shared)).toContain('Broker, Other · EUR')
+    expect(page(alone)).toContain('Broker · EUR')
+    expect(page(closed)).toMatch(/<p class="meta">EUR/)
+  })
+
+  it('shows the combined quantity and cost basis', () => {
+    const html = page(shared)
+    expect(html).toMatch(/<dd>14<\/dd>/)
+    expect(html).toContain('€2,100.00')
+    expect(html.match(/<h2>Position<\/h2>/g)).toHaveLength(1)
+  })
+
+  it('offers to buy more without picking an account for the owner, and keeps links free of accounts', () => {
+    const html = page(shared)
+    expect(html).toContain('href="/buy?symbol=VWCE.DE"')
+    expect(html).not.toContain('account=')
+    expect(html).toContain('href="/?symbol=VWCE.DE&amp;period=MAX&amp;hide=1"')
+  })
+
+  it('offers one removal per account, each naming its account, and a plain one for a single account', () => {
+    const several = page(shared)
+    expect(several).toContain('>Remove from Broker<')
+    expect(several).toContain('>Remove from Other<')
+    expect(several).not.toContain('>Remove position<')
+    const single = page(alone)
+    expect(single).toContain('>Remove position<')
+    expect(single).not.toContain('Remove from')
+  })
+
+  it('offers no removal once no account holds it', () => {
+    const html = page(closed)
+    expect(html).not.toContain('Remove position')
+    expect(html).not.toContain('Remove from')
+    expect(html).toContain('href="/buy?symbol=VWCE.DE"')
   })
 })
