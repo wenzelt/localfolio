@@ -13,7 +13,7 @@ This project is a self-hosted, Docker-deployed portfolio tracker inspired by Gho
 ## Out of Scope
 
 - Broker synchronisation
-- CSV import/export
+- Rebuilding trade history from CSV (**Import positions** loads opening balances only)
 - Crypto wallets
 - Tax reporting
 - Currencies beyond EUR and USD
@@ -342,6 +342,30 @@ Operating notes: [Country exposure](country-exposure.md).
 - Map and text list agree, and hide mode hides EUR amounts.
 
 > **Status:** map, exact allocation and explicit metadata fetcher implemented and tested. Initial verified mapping covers four UCITS funds; remaining identity/source review is pending. No real metadata refresh or deployment yet.
+
+---
+
+## Story 15: Export my transactions
+
+**As a** portfolio owner,
+**I want** to download my transactions as a CSV file,
+**so that** I can check them in a spreadsheet and keep a readable copy outside the app.
+
+### Acceptance Criteria
+
+- **Export transactions** on the dashboard downloads one CSV file named `localfolio-transactions-<YYYY-MM-DD>.csv`.
+- The file has one row per transaction of any type, oldest first, under the header `date,account,type,symbol,quantity,unit_price,fee,currency,comment,tags`. Accounts excluded from the dashboard totals are included.
+- Quantities, prices and fees are written exactly as stored.
+- Text a spreadsheet would run as a formula is written as plain text.
+- Only a signed-in owner can download it, and downloading changes nothing.
+
+### Test Targets
+
+- Header, row order, quoting, exact decimals and formula-looking text (`src/transactions-csv.test.ts`).
+- Sign-in required, response headers, byte order mark, an empty ledger, and a database failure that leaks no details (`src/transactions-export.test.ts`).
+- The button on the dashboard (`src/dashboard.test.tsx`) and a real download in the browser (`e2e/export-transactions.e2e.ts`).
+
+> **Status:** implemented and tested.
 
 ---
 
