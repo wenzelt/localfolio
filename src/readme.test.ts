@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parseGhostfolioJson } from './ghostfolio'
 import { positionsTemplate } from './positions-csv'
+import { transactionsHeader } from './transactions-csv'
 
 const root = new URL('../', import.meta.url).pathname
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8')
@@ -53,6 +54,12 @@ describe('README for first-time hosts', () => {
     expect(sample.activities.length).toBeGreaterThan(0)
   })
 
+  it('documents the transactions export with its exact header', () => {
+    expect(readme()).toContain('**Export transactions**')
+    expect(readme()).toContain(transactionsHeader)
+    expect(readme()).toContain('docs/local-import.md#exporting-transactions')
+  })
+
   it('documents the CSV positions import with the exact template header', () => {
     expect(readme()).toContain('Import positions')
     expect(readme()).toContain(positionsTemplate.split('\n')[0])
@@ -90,5 +97,13 @@ describe('docs no longer contradict the shipped app', () => {
   it('does not claim the dashboard is missing or that the app never imports', () => {
     expect(read('docs/yfinance-worker.md')).not.toContain('no web dashboard exists yet')
     expect(read('docs/dashboard.md')).not.toContain('it does not import data')
+  })
+
+  it('describes the transactions export and no longer lists CSV export as out of scope', () => {
+    const section = read('docs/local-import.md').split('## Exporting transactions')[1]?.split('\n## ')[0] ?? ''
+    expect(section).toContain(transactionsHeader)
+    expect(section).toContain('/api/transactions/export')
+    expect(read('docs/user-stories.md')).not.toContain('- CSV import/export')
+    expect(read('docs/user-stories.md')).toContain('Export my transactions')
   })
 })
