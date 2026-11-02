@@ -90,6 +90,75 @@ describe('performance report from the database', () => {
     })
   })
 
+  describe('one symbol across accounts', () => {
+    const accountOf = (name: string, isExcluded = false) => ({ id: crypto.randomUUID(), name, currency: 'EUR', balance: 0, balances: [], comment: null, isExcluded, platformId: null })
+    // Two included accounts buy the same symbol on different days; an excluded one buys it too.
+    async function twoAccounts(client: Sql) {
+      const symbol = `SYNTHETIC-${crypto.randomUUID()}`
+      const [early, late, excluded] = [accountOf('Synthetic early'), accountOf('Synthetic late'), accountOf('Synthetic excluded', true)]
+      const buy = (accountId: string, quantity: number, unitPrice: number, date: string) =>
+        ({ accountId, type: 'BUY', symbol, dataSource: 'YAHOO', currency: 'EUR', quantity, unitPrice, fee: 0, date: `${date}T10:00:00.000Z`, comment: null, tags: [] })
+      await importGhostfolioExport(client, JSON.stringify({
+        meta: { version: '0.0.1', date: '1980-01-02T12:00:00.000Z' }, accounts: [early, late, excluded],
+        activities: [buy(early.id, 10, 10, '1980-01-02'), buy(late.id, 4, 12, '1980-01-06'), buy(excluded.id, 1000, 10, '1979-12-01')],
+        assetProfiles: [], platforms: [], tags: [], user: { settings: { currency: 'EUR', performanceCalculationType: 'ROAI' } },
+      }))
+      await client.unsafe(cacheTables)
+      for (const [date, close] of [['1979-12-01', 10], ['1980-01-02', 10], ['1980-01-03', 11], ['1980-01-06', 12], ['1980-01-07', 13], ['1980-01-08', 13], ['1980-01-09', 13], ['1980-01-10', 13]] as const) {
+        await client`INSERT INTO security_prices VALUES (${symbol}, ${date}, ${close}, 'EUR', 'yfinance', now())`
+      }
+      const idOf = async (external: string) => (await client<{ id: string }[]>`SELECT id FROM accounts WHERE external_id = ${external}`)[0].id
+      return { symbol, earlyId: await idOf(early.id), lateId: await idOf(late.id) }
+    }
+
+    it('combines the accounts: the range starts at the first buy anywhere and the value adds up', async () => {
+      await withIsolatedDatabase(async (client) => {
+        const { symbol } = await twoAccounts(client)
+        const report = await readPerformanceReport(client, '1980-01-10', 'MAX', { symbol })
+        expect(report).toMatchObject({ from: '1980-01-02', to: '1980-01-10', value: '182' })
+        expect(report?.series).toHaveLength(9)
+        expect(report?.series[0]).toMatchObject({ date: '1980-01-02', value: '100' })
+        expect(report?.series.find((day) => day.date === '1980-01-06')).toMatchObject({ value: '148' })
+      })
+    })
+
+    it('has the change of the accounts added together, and a return on the money in both', async () => {
+      await withIsolatedDatabase(async (client) => {
+        const { symbol, earlyId, lateId } = await twoAccounts(client)
+        const combined = await readPerformanceReport(client, '1980-01-10', 'MAX', { symbol })
+        const early = await readPerformanceReport(client, '1980-01-10', 'MAX', { symbol, accountId: earlyId })
+        const late = await readPerformanceReport(client, '1980-01-10', 'MAX', { symbol, accountId: lateId })
+        expect(combined?.change).toBe('34')
+        expect(Number(early?.change) + Number(late?.change)).toBe(34)
+        // 34 on an average of 100 for nine days plus 48 for five of them: 34 / (100 + 48 * 5 / 9)
+        expect(Number(combined?.changePercent)).toBeCloseTo(26.8421, 3)
+      })
+    })
+
+    it('still scopes to one account when an account is given', async () => {
+      await withIsolatedDatabase(async (client) => {
+        const { symbol, lateId } = await twoAccounts(client)
+        expect(await readPerformanceReport(client, '1980-01-10', 'MAX', { symbol, accountId: lateId })).toMatchObject({ from: '1980-01-06', value: '52' })
+      })
+    })
+
+    it('leaves out excluded accounts and returns null for a symbol nobody holds', async () => {
+      await withIsolatedDatabase(async (client) => {
+        const { symbol } = await twoAccounts(client)
+        expect((await readPerformanceReport(client, '1980-01-10', 'MAX', { symbol }))?.value).toBe('182')
+        expect(await readPerformanceReport(client, '1980-01-10', 'MAX', { symbol: 'NOPE' })).toBeNull()
+      })
+    })
+
+    it('adds the closes to the combined series like any scoped report', async () => {
+      await withIsolatedDatabase(async (client) => {
+        const { symbol } = await twoAccounts(client)
+        const report = await readPerformanceReport(client, '1980-01-10', 'MAX', { symbol })
+        expect(report?.series.at(-1)).toMatchObject({ price: { date: '1980-01-10', close: '13', currency: 'EUR' } })
+      })
+    })
+  })
+
   it('attaches the cached close, currency and close date to each day of a scoped series', async () => {
     await withCache({ withExcluded: true }, async (client, { symbol, accountId }) => {
       const report = await readPerformanceReport(client, '1980-01-04', 'MAX', { accountId, symbol })
