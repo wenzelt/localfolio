@@ -62,6 +62,34 @@ describe('performance report from the database', () => {
     })
   })
 
+  it('starts each account\'s Max range at its own first buy of a shared symbol, with its own return', async () => {
+    await withIsolatedDatabase(async (client) => {
+      const symbol = `SYNTHETIC-${crypto.randomUUID()}`
+      const account = (name: string) => ({ id: crypto.randomUUID(), name, currency: 'EUR', balance: 0, balances: [], comment: null, isExcluded: false, platformId: null })
+      const [early, late] = [account('Synthetic early'), account('Synthetic late')]
+      const buy = (accountId: string, quantity: number, unitPrice: number, date: string) =>
+        ({ accountId, type: 'BUY', symbol, dataSource: 'YAHOO', currency: 'EUR', quantity, unitPrice, fee: 0, date: `${date}T10:00:00.000Z`, comment: null, tags: [] })
+      await importGhostfolioExport(client, JSON.stringify({
+        meta: { version: '0.0.1', date: '1980-01-02T12:00:00.000Z' }, accounts: [early, late],
+        activities: [buy(early.id, 10, 10, '1980-01-02'), buy(late.id, 4, 12, '1980-01-06')],
+        assetProfiles: [], platforms: [], tags: [], user: { settings: { currency: 'EUR', performanceCalculationType: 'ROAI' } },
+      }))
+      await client.unsafe(cacheTables)
+      for (const [date, close] of [['1980-01-02', 10], ['1980-01-03', 11], ['1980-01-06', 12], ['1980-01-07', 13], ['1980-01-08', 13], ['1980-01-09', 13], ['1980-01-10', 13]] as const) {
+        await client`INSERT INTO security_prices VALUES (${symbol}, ${date}, ${close}, 'EUR', 'yfinance', now())`
+      }
+      const idOf = async (external: string) => (await client<{ id: string }[]>`SELECT id FROM accounts WHERE external_id = ${external}`)[0].id
+      const first = await readPerformanceReport(client, '1980-01-10', 'MAX', { accountId: await idOf(early.id), symbol })
+      const second = await readPerformanceReport(client, '1980-01-10', 'MAX', { accountId: await idOf(late.id), symbol })
+      expect(first).toMatchObject({ from: '1980-01-02', value: '130', change: '30', changePercent: '30' })
+      expect(first?.series[0].date).toBe('1980-01-02')
+      expect(second).toMatchObject({ from: '1980-01-06', value: '52', change: '4' })
+      expect(second?.series[0]).toMatchObject({ date: '1980-01-06', changePercent: '0' })
+      expect(second?.series).toHaveLength(5)
+      expect(Number(second?.changePercent)).toBeCloseTo(8.3333, 3)
+    })
+  })
+
   it('attaches the cached close, currency and close date to each day of a scoped series', async () => {
     await withCache({ withExcluded: true }, async (client, { symbol, accountId }) => {
       const report = await readPerformanceReport(client, '1980-01-04', 'MAX', { accountId, symbol })
