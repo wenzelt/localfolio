@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
-import { readPositionReport } from '../src/positions'
+import { combinePositions, readPositionReport } from '../src/positions'
 import { readRateHistory } from '../src/fx-cache'
 import { withCash } from '../src/cash'
 import { readDailyMovement } from '../src/daily-movement'
@@ -25,11 +25,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   const asOf = new Date().toISOString().slice(0, 10)
   const names = await readSecurityNames(sql)
   const rates = await readRateHistory(sql, asOf)
-  const positions = (await readPositionReport(sql, Object.fromEntries(rates.map((rate) => [rate.date, rate.eurPerUsd])))).filter((position) => !position.isExcluded).map((position) => ({ ...position, name: names[position.symbol] ?? null }))
+  const positions = combinePositions(await readPositionReport(sql, Object.fromEntries(rates.map((rate) => [rate.date, rate.eurPerUsd])))).map((position) => ({ ...position, name: names[position.symbol] ?? null }))
+  // A position is one symbol, whichever accounts hold it. Links from before that also carry an account, which no longer matters.
   const scoped = account !== undefined || symbol !== undefined
-  const position = scoped ? positions.find((holding) => holding.accountId === account && holding.symbol === symbol) : undefined
+  const position = scoped ? positions.find((holding) => holding.symbol === symbol) : undefined
   if (scoped && !position) notFound()
-  const report = await readPerformanceReport(sql, asOf, view.period, position ? { accountId: position.accountId, symbol: position.symbol } : undefined)
+  const report = await readPerformanceReport(sql, asOf, view.period, position ? { symbol: position.symbol } : undefined)
   const daily = scoped ? [] : withCash((await readDailyMovement(sql, asOf)).map((item) => ({ ...item, name: names[item.symbol] ?? null })))
   return <>
     <PreferenceSync period={view.period} hidden={view.hidden} />

@@ -13,10 +13,10 @@ import { ThemePicker } from './theme-picker'
 import { StarBanner, StarMark, StarPattern, StarSticker } from './stars'
 import type { Theme } from './theme-choice'
 
-import type { positionReport } from './positions'
+import type { combinePositions } from './positions'
 
 type Report = Awaited<ReturnType<typeof readPerformanceReport>>
-type Position = ReturnType<typeof positionReport>[number] & { name?: string | null }
+type Position = ReturnType<typeof combinePositions>[number] & { name?: string | null }
 
 const icon = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
 
@@ -37,7 +37,10 @@ const Mark = () => <svg className="mark" width="24" height="24" viewBox="0 0 24 
 
 export function Dashboard({ report, hidden = false, theme = 'ledger', position, daily = [], countries = {} }: { report: Report; hidden?: boolean; theme?: Theme; position?: Position; daily?: Parameters<typeof DailyHeatmap>[0]['items']; countries?: Record<string, CountryComposition> }) {
   const period = report?.period ?? 'MAX'
-  const scope = position ? `account=${encodeURIComponent(position.accountId)}&symbol=${encodeURIComponent(position.symbol)}&` : ''
+  const scope = position ? `symbol=${encodeURIComponent(position.symbol)}&` : ''
+  // The accounts only say where a position is held. With one holder, buying more can name it; with several the owner chooses.
+  const holders = position?.accounts.map((account) => account.name).join(', ')
+  const buyMore = position ? `/buy?${position.accounts.length === 1 ? `account=${encodeURIComponent(position.accounts[0].id)}&` : ''}symbol=${encodeURIComponent(position.symbol)}` : '/buy'
   const mask = <span className="mask" role="img" aria-label="Value hidden">••••</span>
   const summary = position ? null : dailySummary(daily)
   const today = summary?.date ? summary : null
@@ -54,11 +57,11 @@ export function Dashboard({ report, hidden = false, theme = 'ledger', position, 
     {!report ? <section className="card">{pop && <StarMark className="star-empty" />}<h1>No portfolio imported</h1><p>Import your Ghostfolio export, or record transactions by hand, then refresh market data.</p>
       <p><a className="quiet" href="/import/ghostfolio">Upload your Ghostfolio export</a></p><p><code>npm run import:ghostfolio -- &lt;file&gt;</code></p><p><code>npm run ledger:add -- account --name &lt;name&gt; --currency EUR</code></p></section> : <>
       {pop && <StarBanner />}
-      <section className="heading"><div>{position && <a className="back" href={`/?period=${period}${hidden ? '&hide=1' : ''}`}>Back to portfolio</a>}<h1>{position?.name || position?.symbol || 'Your portfolio'}</h1>{position?.name && <p className="muted">{position.symbol}</p>}<p className="meta">{position ? `${position.accountName} · EUR` : 'Overview · EUR'}<LiveRefresh fetchedAt={report.freshness.fetchedAt} /></p>{!position && <a className="quiet buy-more overview-buy" href="/buy">Add buy</a>}{position && <a className="quiet buy-more" href={`/buy?account=${encodeURIComponent(position.accountId)}&symbol=${encodeURIComponent(position.symbol)}`}>Buy more</a>}</div>
+      <section className="heading"><div>{position && <a className="back" href={`/?period=${period}${hidden ? '&hide=1' : ''}`}>Back to portfolio</a>}<h1>{position?.name || position?.symbol || 'Your portfolio'}</h1>{position?.name && <p className="muted">{position.symbol}</p>}<p className="meta">{position ? `${holders ? `${holders} · ` : ''}EUR` : 'Overview · EUR'}<LiveRefresh fetchedAt={report.freshness.fetchedAt} /></p>{!position && <a className="quiet buy-more overview-buy" href="/buy">Add buy</a>}{position && <a className="quiet buy-more" href={buyMore}>Buy more</a>}</div>
         <PeriodControl period={report.period} />
       </section>
       {position && <section className="card"><h2>Position</h2>{position.status === 'calculated' ? <dl className="stats"><div><dt>Quantity</dt><dd>{hidden ? mask : position.quantity}</dd></div><div><dt>Cost basis · {position.currency}</dt><dd>{hidden ? mask : position.currency === 'EUR' ? formatEur(position.invested) : position.invested}</dd></div>{position.nativeInvested !== undefined && <div><dt>Cost basis · USD</dt><dd>{hidden ? mask : formatUsd(position.nativeInvested)}</dd></div>}{nativeValue !== null && <div><dt>Value · USD</dt><dd>{hidden ? mask : formatUsd(nativeValue)}</dd></div>}</dl> : <p role="status">Historical FX required to calculate this position.</p>}</section>}
-      {position && <RemovePositionControl accountId={position.accountId} accountName={position.accountName} symbol={position.symbol} />}
+      {position?.accounts.map((account) => <RemovePositionControl key={account.id} accountId={account.id} accountName={account.name} symbol={position.symbol} named={position.accounts.length > 1} />)}
       <section className="card">
         {pop && <StarSticker label="Stars & stripes" />}
         <div className="summary"><div><p className="label">Net invested value</p><div className="value">{hidden ? mask : formatEur(report.value)}</div></div>

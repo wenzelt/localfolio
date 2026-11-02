@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest'
 import { DailyHeatmap, tileLayout, movementIntensity } from './heatmap'
 
 const items = [
-  { accountId: 'a', accountName: 'Broker', symbol: 'GAIN', value: '300', changePercent: '2', observedOn: '2026-10-21', previousOn: '2026-10-20' },
-  { accountId: 'b', accountName: 'Other', symbol: 'LOSS', value: '100', changePercent: '-1', observedOn: '2026-10-20', previousOn: '2026-10-19' },
+  { accountNames: ['Broker'], symbol: 'GAIN', value: '300', changePercent: '2', observedOn: '2026-10-21', previousOn: '2026-10-20' },
+  { accountNames: ['Other'], symbol: 'LOSS', value: '100', changePercent: '-1', observedOn: '2026-10-20', previousOn: '2026-10-19' },
 ]
 
 describe('weighted tile layout', () => {
@@ -41,16 +41,44 @@ describe('daily heatmap', () => {
     expect(renderToStaticMarkup(<DailyHeatmap items={[{ ...items[0], change: '5.88' }]} period="MAX" hidden />)).not.toContain('5.88')
     expect(renderToStaticMarkup(<DailyHeatmap items={[{ ...items[0], change: null }]} period="MAX" />)).not.toContain('€5.88')
   })
-  it('links every position, names its account and session, and explains size and colour', () => {
+  it('links every position by its symbol alone, names its account and session, and explains size and colour', () => {
     const html = renderToStaticMarkup(<DailyHeatmap items={items} period="MAX" hidden={false} />)
     expect(html).toContain('Today’s movement')
     expect(html).toContain('quoted currency')
     expect(html).toContain('2026-10-20')
     expect(html).toContain('Broker')
-    expect(html).toContain('account=a&amp;symbol=GAIN')
+    expect(html).toContain('href="/?symbol=GAIN&amp;period=MAX&amp;hide=0"')
+    expect(html).not.toContain('account=')
     expect(html).toContain('+2.00%')
     expect(html).toContain('-1.00%')
     expect(html).toContain('€300.00')
+  })
+  describe('a symbol held in several accounts', () => {
+    const shared = { ...items[0], accountNames: ['Broker', 'Other'], value: '500' }
+
+    it('is one tile and one row, not one per account', () => {
+      const html = renderToStaticMarkup(<DailyHeatmap items={[shared, items[1]]} period="MAX" />)
+      expect(html.match(/class="heatmap-tile /g)).toHaveLength(2)
+      expect(html.match(/<li>/g)).toHaveLength(2)
+      // Each position's name appears twice: in its tile and in its row.
+      expect(html.match(/<strong>GAIN<\/strong>/g)).toHaveLength(2)
+    })
+
+    it('lists every account that holds it, in the tile label and in the row', () => {
+      const html = renderToStaticMarkup(<DailyHeatmap items={[shared]} period="MAX" />)
+      expect(html).toContain('GAIN · Broker, Other · +2.00%')
+      expect(html).toContain('<small>Broker, Other</small>')
+    })
+
+    it('has a single detail link, whichever account holds it', () => {
+      const html = renderToStaticMarkup(<DailyHeatmap items={[shared]} period="MAX" />)
+      expect(html.match(/href="\/\?symbol=GAIN&amp;period=MAX&amp;hide=0"/g)).toHaveLength(2)
+      expect(html).not.toContain('account=')
+    })
+
+    it('shows the combined value', () => {
+      expect(renderToStaticMarkup(<DailyHeatmap items={[shared]} period="MAX" />)).toContain('€500.00')
+    })
   })
   it('hides monetary values without hiding percentages and preserves privacy in links', () => {
     const html = renderToStaticMarkup(<DailyHeatmap items={items} period="YTD" hidden />)
@@ -67,7 +95,7 @@ describe('daily heatmap', () => {
 })
 
 describe('cash position', () => {
-  const cash = { accountId: 'cash', accountName: 'Cash', symbol: 'CASH', name: 'Cash', kind: 'cash' as const, value: '0', changePercent: '0', observedOn: null, previousOn: null }
+  const cash = { accountNames: [] as string[], symbol: 'CASH', name: 'Cash', kind: 'cash' as const, value: '0', changePercent: '0', observedOn: null, previousOn: null }
 
   it('is listed like any position with its EUR value but has no detail link', () => {
     const html = renderToStaticMarkup(<DailyHeatmap items={[items[0], cash]} period="MAX" />)

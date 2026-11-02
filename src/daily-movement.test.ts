@@ -14,7 +14,7 @@ const run = (trades: Trade[], prices: ReturnType<typeof bar>[], rates: { date: s
 describe('daily movement', () => {
   it('values the position and reports the percent change against the previous bar', () => {
     expect(run([buy('a1', 'X', '1.5')], [bar('X', '1980-01-04', '10'), bar('X', '1980-01-07', '11')])).toEqual([
-      { accountId: 'a1', accountName: 'Synthetic one', symbol: 'X', value: '16.5', change: '1.5', changePercent: '10', observedOn: '1980-01-07', previousOn: '1980-01-04' },
+      { accountNames: ['Synthetic one'], symbol: 'X', value: '16.5', change: '1.5', changePercent: '10', observedOn: '1980-01-07', previousOn: '1980-01-04' },
     ])
   })
 
@@ -55,9 +55,37 @@ describe('daily movement', () => {
     expect(() => run([{ ...buy('a1', 'X', '1'), type: 'SELL' as const }], [bar('X', '1980-01-07', '1')])).toThrow('Sold more than held')
   })
 
-  it('keeps the same symbol in two accounts separate', () => {
+  it('reports a symbol held in several accounts as one position, whichever account holds it', () => {
+    const prices = [bar('X', '1980-01-04', '10'), bar('X', '1980-01-07', '12')]
+    expect(run([buy('a1', 'X', '1'), buy('a2', 'X', '4')], prices)).toEqual([
+      { accountNames: ['Synthetic one', 'Synthetic two'], symbol: 'X', value: '60', change: '10', changePercent: '20', observedOn: '1980-01-07', previousOn: '1980-01-04' },
+    ])
+    // Swapping which account bought what changes nothing about the position.
+    expect(run([buy('a2', 'X', '1'), buy('a1', 'X', '4')], prices)).toMatchObject([{ symbol: 'X', value: '60', change: '10' }])
+  })
+
+  it('names only the accounts that still hold the symbol', () => {
     const prices = [bar('X', '1980-01-04', '10'), bar('X', '1980-01-07', '10')]
-    expect(run([buy('a1', 'X', '1'), buy('a2', 'X', '4')], prices).map((item) => [item.accountId, item.value])).toEqual([['a1', '10'], ['a2', '40']])
+    const trades = [buy('a1', 'X', '2'), { ...buy('a1', 'X', '2', '1979-12-02'), type: 'SELL' as const }, buy('a2', 'X', '3')]
+    expect(run(trades, prices)).toMatchObject([{ accountNames: ['Synthetic two'], value: '30' }])
+  })
+
+  it('drops the symbol once every account has sold it', () => {
+    const prices = [bar('X', '1980-01-04', '10'), bar('X', '1980-01-07', '10')]
+    const sell = (accountId: string) => ({ ...buy(accountId, 'X', '2', '1979-12-02'), type: 'SELL' as const })
+    expect(run([buy('a1', 'X', '2'), sell('a1'), buy('a2', 'X', '2'), sell('a2')], prices)).toEqual([])
+  })
+
+  it('still refuses a sale beyond what that account held, even when another account holds enough', () => {
+    const prices = [bar('X', '1980-01-04', '10'), bar('X', '1980-01-07', '10')]
+    expect(() => run([{ ...buy('a1', 'X', '1'), type: 'SELL' as const }, buy('a2', 'X', '5')], prices)).toThrow('Sold more than held')
+  })
+
+  it('lists positions in symbol order, not account order', () => {
+    const prices = ['A', 'B', 'C'].flatMap((symbol) => [bar(symbol, '1980-01-04', '10'), bar(symbol, '1980-01-07', '10')])
+    const items = run([buy('a2', 'C', '1'), buy('a1', 'B', '1'), buy('a2', 'A', '1'), buy('a1', 'C', '1')], prices)
+    expect(items.map((item) => item.symbol)).toEqual(['A', 'B', 'C'])
+    expect(items[2].accountNames).toEqual(['Synthetic one', 'Synthetic two'])
   })
 
   it('converts a USD position at the latest rate at or before the cutoff', () => {
@@ -77,7 +105,7 @@ describe('daily movement', () => {
 
   it('never reports a false zero when the reference bar is missing', () => {
     expect(run([buy('a1', 'X', '1')], [bar('X', '1980-01-07', '11')])[0]).toEqual(
-      { accountId: 'a1', accountName: 'Synthetic one', symbol: 'X', value: '11', change: null, changePercent: null, observedOn: '1980-01-07', previousOn: null },
+      { accountNames: ['Synthetic one'], symbol: 'X', value: '11', change: null, changePercent: null, observedOn: '1980-01-07', previousOn: null },
     )
     expect(run([buy('a1', 'X', '1')], [bar('X', '1980-01-07', '11'), bar('X', '1979-12-01', '5')])[0]).toMatchObject({ changePercent: null, previousOn: null })
     expect(run([buy('a1', 'X', '1')], [bar('X', '1980-01-04', '0'), bar('X', '1980-01-07', '11')])[0]).toMatchObject({ value: '11', changePercent: null })
@@ -114,13 +142,12 @@ describe('daily movement from the database', () => {
     return symbol
   }
 
-  it('reads open, included positions per account and ignores later bars', async () => {
+  it('reads open, included positions as one per symbol and ignores later bars and excluded accounts', async () => {
     await withIsolatedDatabase(async (sql) => {
       const symbol = await setup(sql)
       const items = await readDailyMovement(sql, '1980-01-07')
-      expect(items.map(({ accountName, symbol: name, value, changePercent, observedOn, previousOn }) => ({ accountName, name, value, changePercent, observedOn, previousOn }))).toEqual([
-        { accountName: 'B synthetic', name: symbol, value: '12', changePercent: '20', observedOn: '1980-01-07', previousOn: '1980-01-04' },
-        { accountName: 'A synthetic', name: symbol, value: '36', changePercent: '20', observedOn: '1980-01-07', previousOn: '1980-01-04' },
+      expect(items.map(({ accountNames, symbol: name, value, changePercent, observedOn, previousOn }) => ({ accountNames, name, value, changePercent, observedOn, previousOn }))).toEqual([
+        { accountNames: ['B synthetic', 'A synthetic'], name: symbol, value: '48', changePercent: '20', observedOn: '1980-01-07', previousOn: '1980-01-04' },
       ])
     })
   })

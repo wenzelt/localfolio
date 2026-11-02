@@ -3,7 +3,7 @@ import type { PerformancePeriod } from './performance-period'
 import { formatEur, formatPercent, tone } from './dashboard-view'
 
 type Movement = {
-  accountId: string; accountName: string; symbol: string; name?: string | null; kind?: 'cash'; value: string | null; change?: string | null
+  accountNames: string[]; symbol: string; name?: string | null; kind?: 'cash'; value: string | null; change?: string | null
   changePercent: string | null; observedOn: string | null; previousOn: string | null
 }
 type Tile = { item: Movement; x: number; y: number; width: number; height: number }
@@ -38,14 +38,14 @@ export function tileLayout(items: Movement[]): Tile[] {
 
 export function DailyHeatmap({ items, period, hidden = false }: { items: Movement[]; period: PerformancePeriod; hidden?: boolean }) {
   const displayName = (item: Movement) => item.name || item.symbol
-  const href = (item: Movement) => `/?account=${encodeURIComponent(item.accountId)}&symbol=${encodeURIComponent(item.symbol)}&period=${period}&hide=${hidden ? '1' : '0'}`
-  const label = (item: Movement) => `${item.name || item.symbol} · ${item.symbol} · ${item.accountName} · ${item.changePercent === null ? 'Unavailable' : formatPercent(item.changePercent)} · ${item.observedOn ?? 'No price date'}${item.previousOn ? ` versus ${item.previousOn}` : ''}`
+  const href = (item: Movement) => `/?symbol=${encodeURIComponent(item.symbol)}&period=${period}&hide=${hidden ? '1' : '0'}`
+  const label = (item: Movement) => `${item.name || item.symbol} · ${item.symbol} · ${item.accountNames.join(', ')} · ${item.changePercent === null ? 'Unavailable' : formatPercent(item.changePercent)} · ${item.observedOn ?? 'No price date'}${item.previousOn ? ` versus ${item.previousOn}` : ''}`
   return <section className="card daily-movement" aria-labelledby="daily-movement-title">
     <h2 id="daily-movement-title">Today’s movement</h2>
     <p className="muted">Latest trading session · Size: position value in EUR · Colour: price movement in quoted currency, not portfolio profit.</p>
     {items.length === 0 ? <p className="empty">No open positions</p> : <>
       <div className="heatmap">
-        {tileLayout(items).map(({ item, x, y, width, height }, index) => <a key={`${item.accountId}-${item.symbol}`} href={href(item)}
+        {tileLayout(items).map(({ item, x, y, width, height }, index) => <a key={item.symbol} href={href(item)}
           className={`heatmap-tile ${tone(item.changePercent)}`} aria-label={label(item)} title={label(item)}
           style={{ left: `${x * 100}%`, top: `${y * 100}%`, width: `${width * 100}%`, height: `${height * 100}%`, '--intensity': movementIntensity(item.changePercent) } as CSSProperties}>
           <span className="tile-key">{index + 1}</span>
@@ -53,8 +53,8 @@ export function DailyHeatmap({ items, period, hidden = false }: { items: Movemen
         </a>)}
       </div>
       <p className="heatmap-legend"><span className="negative">−5% or lower</span><span>0% / unavailable: neutral</span><span className="positive">+5% or higher</span></p>
-      <div className="movement-details"><h3>All positions and session dates</h3><ul>{[...tileLayout(items).map((tile) => tile.item), ...items.filter((item) => !(Number(item.value) > 0))].map((item, index) => <li key={`${item.accountId}-${item.symbol}`}><Row href={item.kind === 'cash' ? undefined : href(item)}>
-        <span><span className="position-key">{index + 1}</span> <strong>{displayName(item)}</strong>{item.kind !== 'cash' && <><small>{item.name ? `${item.symbol} · ` : ''}{item.accountName}</small><small>{item.observedOn ?? 'No price date'}{item.previousOn && ` versus ${item.previousOn}`}</small></>}</span>
+      <div className="movement-details"><h3>All positions and session dates</h3><ul>{[...tileLayout(items).map((tile) => tile.item), ...items.filter((item) => !(Number(item.value) > 0))].map((item, index) => <li key={item.symbol}><Row href={item.kind === 'cash' ? undefined : href(item)}>
+        <span><span className="position-key">{index + 1}</span> <strong>{displayName(item)}</strong>{item.kind !== 'cash' && <><small>{item.name ? `${item.symbol} · ` : ''}{item.accountNames.join(', ')}</small><small>{item.observedOn ?? 'No price date'}{item.previousOn && ` versus ${item.previousOn}`}</small></>}</span>
         <span className={tone(item.changePercent)}>{item.changePercent === null ? 'Unavailable' : formatPercent(item.changePercent)}{!hidden && <small>{item.value === null ? 'Value unavailable' : formatEur(item.value)}</small>}{!hidden && item.change != null && <small>{formatSigned(item.change)}</small>}</span>
       </Row></li>)}</ul></div>
     </>}

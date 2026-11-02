@@ -94,15 +94,17 @@ test.describe('Story 11: inspect an individual position', () => {
     await expect(overview).not.toContainText('Synthetic Excluded Fund')
 
     await page.getByRole('link', { name: /Synthetic EU ETF/ }).first().click()
-    await expect(page).toHaveURL(/account=.+&symbol=EUETF/)
+    await expect(page).toHaveURL(/\/\?symbol=EUETF&/)
+    expect(page.url()).not.toContain('account=')
     await expect(page.getByRole('heading', { name: 'Synthetic EU ETF' })).toBeVisible()
     await expect(page.locator('dt', { hasText: 'Quantity' })).toBeVisible()
     await expect(page.locator('dd', { hasText: '12.5' })).toBeVisible()
     await page.getByRole('link', { name: 'Back to portfolio' }).click()
     await expect(page.getByRole('heading', { name: 'Your portfolio' })).toBeVisible()
 
-    const response = await page.goto('/?account=00000000-0000-0000-0000-000000000000&symbol=NOPE')
-    expect(response?.status()).toBe(404)
+    expect((await page.goto('/?symbol=NOPE'))?.status()).toBe(404)
+    // A link from before positions were combined still carries an account.
+    expect((await page.goto('/?account=00000000-0000-0000-0000-000000000000&symbol=NOPE'))?.status()).toBe(404)
   })
 
   test('shows a USD holding with its EUR and native USD figures, and a USD chart price', async ({ page }) => {

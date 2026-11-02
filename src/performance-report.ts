@@ -7,12 +7,13 @@ import { performanceStart } from './performance-period'
 import type { PerformancePeriod } from './performance-period'
 import { readPriceHistory, readPricesFetchedAt } from './price-history'
 
-export async function readPerformanceReport(sql: Sql, asOf: string, period: PerformancePeriod, scope?: { accountId: string; symbol: string }) {
+// A scope is one symbol, across every included account unless an account is given.
+export async function readPerformanceReport(sql: Sql, asOf: string, period: PerformancePeriod, scope?: { symbol: string; accountId?: string }) {
   performanceStart(period, asOf, null)
   const ledger = await readLedger(sql)
   if (ledger.accounts.length === 0) return null
   const included = new Set(ledger.accounts.filter((account) => !account.isExcluded).map((account) => account.id))
-  const activities = tradesOf(ledger.activities).filter((trade) => included.has(trade.accountId) && (!scope || (trade.accountId === scope.accountId && trade.symbol === scope.symbol))).map((trade) => ({
+  const activities = tradesOf(ledger.activities).filter((trade) => included.has(trade.accountId) && (!scope || (trade.symbol === scope.symbol && (scope.accountId === undefined || trade.accountId === scope.accountId)))).map((trade) => ({
     type: trade.type, date: trade.date, symbol: trade.symbol, currency: trade.currency,
     quantity: trade.quantity, unitPrice: trade.unitPrice, fee: trade.fee,
   }))
