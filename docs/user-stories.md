@@ -259,11 +259,12 @@ This project is a self-hosted, Docker-deployed portfolio tracker inspired by Gho
 
 ### Acceptance Criteria
 
-- A position is identified by account and symbol and is listed on the overview; excluded accounts are not listed.
-- The detail view reuses the existing timeframe and hide controls, and the existing performance calculation scoped to that holding.
+- A position is one symbol, whichever account holds it. A symbol held in several accounts is one tile, one row and one detail page, with the accounts named and the quantity, cost basis and performance added up; excluded accounts are not listed.
+- The detail view reuses the existing timeframe and hide controls, and the existing performance calculation scoped to that symbol.
+- Removal is the one action that stays per account, because it deletes that account's trades.
 - Unknown or excluded positions return "not found" rather than portfolio totals; missing FX renders an explicit notice.
 
-> **Status:** implemented. Closed positions (quantity 0) are no longer listed, though their URL still opens. Hidden detail figures, the missing-FX notice and same-symbol-in-two-accounts isolation are tested. Playwright Chromium verifies the `app/page.tsx` wiring for open EUR/USD holdings, closed/excluded listing omission, unknown-position 404, hidden detail figures and return navigation. Missing-FX and same-symbol account isolation remain unit-tested rather than browser-tested.
+> **Status:** implemented. Closed positions (quantity 0) are no longer listed, though their URL still opens. Hidden detail figures, the missing-FX notice and the combination of a symbol held in two accounts are tested. Playwright Chromium verifies the `app/page.tsx` wiring for open EUR/USD holdings, closed/excluded listing omission, unknown-position 404, hidden detail figures and return navigation. Missing-FX remains unit-tested rather than browser-tested. Playwright also checks that a symbol held in two accounts is one tile, one row and one detail page, and that a link from before positions were combined, which names an account, still opens it.
 
 ---
 

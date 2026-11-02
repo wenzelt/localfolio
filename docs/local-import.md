@@ -28,7 +28,7 @@ npm run ledger:add -- transaction --account <id> --type DEPOSIT --date 2026-01-0
 - `BUY` and `SELL` need `--symbol`, `--quantity` and `--unit-price`; the fee defaults to 0. `DEPOSIT`, `WITHDRAWAL`, `FEE` and `DIVIDEND` take `--amount` instead (a dividend may also name `--symbol`).
 - A `SELL` is rejected if, at any point in time, it would sell more than the account holds of that symbol. This also stops a backdated sale from leaving a later sale uncovered.
 
-- A new position is the first `BUY` of a symbol in an account, and an increase is another `BUY` of the same symbol in the same account; positions are derived from the ledger, so there is nothing else to update.
+- A new position is the first `BUY` of a symbol in an account, and an increase is another `BUY` of the same symbol in the same account; positions are derived from the ledger, so there is nothing else to update. The dashboard shows one position per symbol and adds up every account that holds it.
 - A transaction identical to a saved one (same account, type, symbol, currency, quantity, price, fee and timestamp, compared by value so `2.0` equals `2`) is rejected as a likely double entry. A genuine repeat, such as two equal fills in the same minute, is saved with `--force`; a `--comment` helps tell them apart.
 - A bought symbol is priced only after the next worker refresh. When a `BUY` names a symbol with no cached quote or price history, `ledger:add` prints a hint on stderr (stdout still carries only the new id). The entry is saved either way. Symbols are not checked against Yahoo at entry: the refresh handles each symbol separately and lists one it cannot fetch as `N failed: SYMBOL (reason)` in its summary, so a mistyped ticker leaves that one position unvalued without affecting the others.
 
@@ -87,7 +87,7 @@ Test scripts load `.env` when present. Integration tests require `DATABASE_URL` 
 
 ## Adding a buy in the web app
 
-Signed in, open **Add buy** in the header (on a phone, under the page heading), or **Buy more** on a position, which opens the form with that account and symbol already chosen at `/buy`.
+Signed in, open **Add buy** in the header (on a phone, under the page heading), or **Buy more** on a position, which opens the form at `/buy` with the symbol already chosen, and the account too when only one account holds it.
 
 - **Symbol:** type a name or ticker; after a short pause matches from Yahoo Finance are listed (equities, ETFs and funds only). Use the arrow keys and Enter, or click, to pick one. Picking fetches the last price and fills in the currency and, if still empty, the price per unit. Change the price to what you actually paid.
 - **Currency:** only EUR and USD can be recorded. A symbol Yahoo quotes in any other currency (for example pence on the London exchange) is refused, because the ledger could not value it correctly.
@@ -100,7 +100,7 @@ Signed in, open **Add buy** in the header (on a phone, under the page heading), 
 
 ## Removing a position
 
-Open a position and choose **Remove position**. The confirmation names the account and symbol and requires typing the exact symbol before **Permanently remove** is enabled. Cancel leaves everything unchanged.
+Open a position and choose **Remove position**. The confirmation names the account and symbol and requires typing the exact symbol before **Permanently remove** is enabled. Cancel leaves everything unchanged. When several accounts hold the symbol, each has its own **Remove from <account>** button, because removal deletes that account's trades only.
 
 Removal deletes every transaction for that symbol in that account, including buys, sells and dividends, plus their tag links. It is not a sale: it changes historical performance and has no in-app undo. Make a backup first (README, Backup and restore). Other symbols, other accounts, account-level cash movements and shared market caches remain unchanged. Existing raw import records and backup files are retained; this is not secure erasure of all copies. A later import containing those activities may recreate them.
 
