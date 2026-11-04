@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { chartAccent, chartGeometry, chartTicks, formatEur, formatPercent, parsePeriod, PERIODS, tone } from './dashboard-view'
 
 describe('period choices', () => {
-  it('offers the five chart periods in dropdown order', () => {
+  it('offers the nine chart periods in dropdown order', () => {
     expect(PERIODS).toEqual([
       { value: 'MAX', label: 'Max' },
+      { value: '1M', label: '1 month' },
+      { value: '3M', label: '3 months' },
+      { value: '6M', label: '6 months' },
       { value: '1Y', label: '1 year' },
+      { value: '5Y', label: '5 years' },
       { value: 'YTD', label: 'Year to date' },
       { value: 'MTD', label: 'Month to date' },
       { value: 'WTD', label: 'Week to date' },
@@ -14,6 +18,7 @@ describe('period choices', () => {
 
   it('parses a known period and falls back to Max', () => {
     expect(parsePeriod('YTD')).toBe('YTD')
+    for (const value of ['1M', '3M', '6M', '5Y'] as const) expect(parsePeriod(value)).toBe(value)
     expect(parsePeriod('1D')).toBe('MAX')
     for (const value of [undefined, '', 'ytd', 'ALL', '1Y; DROP']) expect(parsePeriod(value)).toBe('MAX')
   })
