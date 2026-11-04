@@ -8,7 +8,7 @@ The supplied export is validated and stored in normalized PostgreSQL tables (`ac
 npm run import:ghostfolio -- private/ghostfolio-export.json
 ```
 
-Prints `created`, `skipped` and `rejected` rows with account and activity counts. `created` rows are new; `skipped` rows were already stored, so re-importing an identical export creates nothing and an extended export adds only its new activities. An invalid export exits non-zero with `Import rejected: …` and saves nothing, and a database error rolls the whole import back. Requires `DATABASE_URL`.
+Prints `created`, `skipped` and `rejected` rows with account and activity counts. `created` rows are new; `skipped` rows were already stored, so re-importing an identical export creates nothing and an extended export adds only its new activities. An invalid export exits non-zero with `Import rejected: …` and saves nothing; so does an export whose sales exceed what an account holds of a symbol at any point, counting buys already in the ledger, and a database error rolls the whole import back. Requires `DATABASE_URL`.
 
 ## Manual entry
 

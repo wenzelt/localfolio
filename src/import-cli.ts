@@ -1,5 +1,6 @@
 import type { Sql } from 'postgres'
 import { parseGhostfolioJson } from './ghostfolio'
+import { InputError } from './input-error'
 import { importGhostfolioExport } from './ledger-store'
 
 export async function runImportCli(sql: Sql, args: string[], readText: (path: string) => Promise<string>) {
@@ -17,7 +18,9 @@ export async function runImportCli(sql: Sql, args: string[], readText: (path: st
   } catch (error) {
     throw new Error(`Import rejected: ${error instanceof Error ? error.message : String(error)}`)
   }
-  const { created, skipped } = await importGhostfolioExport(sql, text)
+  const { created, skipped } = await importGhostfolioExport(sql, text).catch((error: unknown) => {
+    throw error instanceof InputError ? new Error(`Import rejected: ${error.message}`) : error
+  })
   const counts = (value: { accounts: number; activities: number }) => `${value.accounts}\t${value.activities}`
   return ['outcome\taccounts\tactivities', `created\t${counts(created)}`, `skipped\t${counts(skipped)}`, 'rejected\t0\t0', ''].join('\n')
 }

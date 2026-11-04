@@ -1,5 +1,6 @@
 import type { Sql } from 'postgres'
 import { parseGhostfolioJson } from './ghostfolio'
+import { InputError } from './input-error'
 import { importGhostfolioExport } from './ledger-store'
 import { authenticated, sameOrigin } from './web-auth'
 
@@ -36,7 +37,8 @@ export async function ghostfolioImport(request: Request, { sql, secret, now }: {
   }
   try {
     return reply(200, await importGhostfolioExport(sql, json))
-  } catch {
+  } catch (error) {
+    if (error instanceof InputError) return reply(400, { error: `Import rejected: ${error.message}` })
     return reply(500, { error: 'Import failed and nothing was saved; please try again' })
   }
 }

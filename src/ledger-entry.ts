@@ -1,6 +1,6 @@
 import type { Sql } from 'postgres'
 import { InputError } from './input-error'
-import { ensureLedgerSchema } from './ledger-store'
+import { ensureLedgerSchema, firstOversoldDay } from './ledger-store'
 
 const types = ['BUY', 'SELL', 'DIVIDEND', 'DEPOSIT', 'WITHDRAWAL', 'FEE']
 const currencies = ['EUR', 'USD']
@@ -81,12 +81,9 @@ export async function addTransaction(sql: Sql, input: TransactionInput): Promise
       VALUES (${input.accountId}, ${input.type}, ${entry.symbol}, ${entry.symbol === null ? null : 'YAHOO'}, ${input.currency},
         ${entry.quantity}, ${entry.unitPrice}, ${entry.fee}, ${entry.occurredAt}, ${input.comment ?? null})
       RETURNING id`
-    if (input.type === 'SELL') {
-      // A sale must be covered at every point in time, which also catches a backdated sale that starves a later one.
-      const [check] = await tx`SELECT coalesce(bool_or(held < 0), false) AS oversold FROM (
-        SELECT sum(CASE type WHEN 'BUY' THEN quantity ELSE -quantity END) OVER (ORDER BY occurred_at, type = 'SELL', seq) AS held
-        FROM transactions WHERE account_id = ${input.accountId} AND symbol = ${entry.symbol} AND type IN ('BUY', 'SELL')) timeline`
-      if (check.oversold) throw new InputError('Cannot sell more than is held')
+    // A sale must be covered at every point in time, which also catches a backdated sale that starves a later one.
+    if (input.type === 'SELL' && entry.symbol !== null && await firstOversoldDay(tx, input.accountId, entry.symbol) !== null) {
+      throw new InputError('Cannot sell more than is held')
     }
     return { id: row.id as string }
   })
