@@ -15,6 +15,16 @@ export function decimalToFraction(value: string): Fraction {
   })
 }
 
+// The same with an optional leading minus, for figures that can be negative such as gains, returns and flows.
+export function signedDecimalToFraction(value: string): Fraction {
+  if (!/^-?\d+(?:\.\d+)?$/.test(value)) {
+    throw new Error(`Invalid decimal value: ${value}`)
+  }
+
+  const magnitude = decimalToFraction(value.replace(/^-/, ''))
+  return value.startsWith('-') ? { numerator: -magnitude.numerator, denominator: magnitude.denominator } : magnitude
+}
+
 export function add(left: Fraction, right: Fraction): Fraction {
   return reduce({
     numerator: left.numerator * right.denominator + right.numerator * left.denominator,
