@@ -1,16 +1,16 @@
 import type { Sql } from 'postgres'
 import { addAccount, deleteAccount, DuplicateAccountError, InvalidAccountError } from './accounts'
-import { authenticated, sameOrigin } from './web-auth'
+import { refuse, reply } from './route-guard'
+import type { Session } from './route-guard'
 
-type Deps = { sql: Sql; secret: string; now: number }
+type Deps = Session & { sql: Sql }
 
-const reply = (status: number, body: unknown) => Response.json(body, { status, headers: { 'cache-control': 'no-store' } })
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // Shared checks for both writes: signed in, same origin, and a JSON object body.
-async function guarded(request: Request, { secret, now }: Deps, invalid: string): Promise<Response | Record<string, unknown>> {
-  if (!authenticated(request.headers.get('cookie'), secret, now)) return reply(401, { error: 'Not signed in' })
-  if (!sameOrigin(request)) return reply(403, { error: 'Forbidden' })
+async function guarded(request: Request, deps: Deps, invalid: string): Promise<Response | Record<string, unknown>> {
+  const refused = refuse(request, deps, { write: true })
+  if (refused) return refused
   let body: unknown
   try { body = await request.json() } catch { return reply(400, { error: invalid }) }
   return typeof body === 'object' && body !== null ? body as Record<string, unknown> : reply(400, { error: invalid })
