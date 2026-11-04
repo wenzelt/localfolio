@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
 
+from worker.clock import local_today
 from worker.fx import refresh_rates
 from worker.prices import refresh_price_history
 from worker.quotes import refresh_quotes
@@ -122,14 +123,15 @@ def main(argv=None):
         parser.error('--intraday cannot be combined with --dry-run')
 
     def run():
+        today = local_today()
         with psycopg.connect(os.environ['DATABASE_URL']) as connection:
             if args.intraday:
-                summary = refresh_intraday(connection, date.today())
+                summary = refresh_intraday(connection, today)
             else:
-                summary = refresh_import(connection, date.today(), dry_run=args.dry_run)
+                summary = refresh_import(connection, today, dry_run=args.dry_run)
             if not args.dry_run:
                 from worker.names import refresh_names
-                symbols = plan_refresh(load_activities(connection), date.today())['historySymbols']
+                symbols = plan_refresh(load_activities(connection), today)['historySymbols']
                 refresh_names(connection, symbols)
             return summary
 

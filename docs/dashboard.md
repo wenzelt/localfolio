@@ -10,9 +10,10 @@ Add these to your existing `.env` without replacing the database settings:
 APP_BIND_IP=192.168.1.10
 APP_PASSWORD=replace-with-a-long-unique-password
 SESSION_SECRET=replace-with-at-least-32-random-characters
+TZ=America/New_York
 ```
 
-Use your server's actual LAN IPv4 address. Without APP_BIND_IP, the app binds only to 127.0.0.1. Generate SESSION_SECRET locally, for example with `openssl rand -hex 32`; do not paste secrets into chat or commit them. Missing credentials fail closed. Changing SESSION_SECRET invalidates all sessions. Sessions expire after 24 hours.
+Use your server's actual LAN IPv4 address. Without APP_BIND_IP, the app binds only to 127.0.0.1. Generate SESSION_SECRET locally, for example with `openssl rand -hex 32`; do not paste secrets into chat or commit them. Set TZ to your own IANA time zone so the day starts at your midnight; without it the app and the worker use UTC, and a value that is not a zone name makes the pages fail, with an error naming TZ in the container log. Missing credentials fail closed. Changing SESSION_SECRET invalidates all sessions. Sessions expire after 24 hours.
 
 ## Start
 

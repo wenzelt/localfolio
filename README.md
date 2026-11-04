@@ -51,6 +51,8 @@ Run the remaining commands from this folder. If you downloaded a ZIP instead, ex
    | `APP_PASSWORD` | A different strong password. This is what you use to sign in to Localfolio. |
    | `SESSION_SECRET` | The random output from `openssl rand -hex 32` above. It protects your signed-in session. |
 
+   Also set `TZ` to your IANA time zone, for example `TZ=America/New_York`, `TZ=Europe/Berlin` or `TZ=Asia/Tokyo` ([list of zone names](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)). It decides when your day starts: the dashboard's date, the latest date the buy form accepts, and the day the refresh worker fetches up to. Without it the day starts at midnight UTC.
+
    If OpenSSL is unavailable, use a password manager to generate a random 64-character hexadecimal string for `SESSION_SECRET` (letters a–f and digits 0–9). Do not reuse one of your passwords for it. Save the file before continuing.
 
    **Keep `.env` private.** Do not share it, include it in screenshots, or commit it to Git. `.env` is git-ignored, meaning Git normally skips it. Leave the other settings at their defaults for your first local setup. If you already have a `.env`, keep it rather than overwriting it.

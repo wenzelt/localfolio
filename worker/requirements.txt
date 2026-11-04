@@ -1,2 +1,3 @@
 yfinance==0.2.66
 psycopg[binary]==3.2.12
+tzdata==2025.2

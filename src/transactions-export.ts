@@ -1,5 +1,6 @@
 import type { Sql } from 'postgres'
 import { readLedger } from './ledger-store'
+import { localDate } from './local-date'
 import { transactionsCsv } from './transactions-csv'
 import { refuse, reply } from './route-guard'
 import type { Session } from './route-guard'
@@ -14,7 +15,7 @@ export async function transactionsExport(request: Request, { sql, ...session }: 
     const { accounts, activities } = await readLedger(sql)
     return new Response(byteOrderMark + transactionsCsv(accounts, activities), { headers: {
       'content-type': 'text/csv; charset=utf-8',
-      'content-disposition': `attachment; filename="localfolio-transactions-${new Date(session.now).toISOString().slice(0, 10)}.csv"`,
+      'content-disposition': `attachment; filename="localfolio-transactions-${localDate(session.now)}.csv"`,
       'cache-control': 'no-store',
     } })
   } catch {

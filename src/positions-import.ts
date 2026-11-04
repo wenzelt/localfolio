@@ -2,6 +2,7 @@ import type { Sql } from 'postgres'
 import { parsePositionsCsv } from './positions-csv'
 import { ensureLedgerSchema } from './ledger-store'
 import { InputError } from './input-error'
+import { localDate } from './local-date'
 import { boundedText, refuse, reply } from './route-guard'
 import type { Session } from './route-guard'
 
@@ -17,7 +18,7 @@ export async function positionsImport(request: Request, { sql, ...session }: Ses
     const body = JSON.parse(text)
     if (!body || typeof body.csv !== 'string' || !['preview', 'import'].includes(body.action)) throw new Error('Choose a CSV file and preview it before importing')
     action = body.action
-    rows = parsePositionsCsv(body.csv, new Date(session.now).toISOString().slice(0, 10))
+    rows = parsePositionsCsv(body.csv, localDate(session.now))
   } catch (error) {
     return reply(400, { error: error instanceof Error ? error.message : 'Invalid CSV request' })
   }

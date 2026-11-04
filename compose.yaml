@@ -29,6 +29,7 @@ services:
       PGUSER: portfolio
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
       PGDATABASE: portfolio
+      TZ: ${TZ:-UTC}
       DATABASE_URL: ""
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/api/health"]
@@ -48,6 +49,7 @@ services:
       PGUSER: portfolio
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
       PGDATABASE: portfolio
+      TZ: ${TZ:-UTC}
       DATABASE_URL: ""
     depends_on:
       db:
@@ -64,6 +66,7 @@ services:
       PGUSER: portfolio
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
       PGDATABASE: portfolio
+      TZ: ${TZ:-UTC}
       DATABASE_URL: ""
     depends_on:
       db:
@@ -80,6 +83,7 @@ services:
       PGUSER: portfolio
       PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
       PGDATABASE: portfolio
+      TZ: ${TZ:-UTC}
       DATABASE_URL: ""
     depends_on:
       db:

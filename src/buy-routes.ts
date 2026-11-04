@@ -1,5 +1,6 @@
 import type { Sql } from 'postgres'
 import { InputError } from './input-error'
+import { localDate } from './local-date'
 import { addTransaction, DuplicateTransactionError, hasCachedPrice } from './ledger-entry'
 import { quoteSymbol, searchSymbols } from './yahoo'
 import { refuse, reply } from './route-guard'
@@ -62,7 +63,7 @@ export async function createBuy(request: Request, deps: Deps & { sql: Sql }): Pr
   const buy = parseBuy(await request.text())
   if (buy === null) return fail(400, 'The buy form could not be read')
   const symbol = buy.symbol.trim()
-  if (buy.date.slice(0, 10) > new Date(deps.now).toISOString().slice(0, 10)) return fail(400, 'A buy cannot be dated in the future')
+  if (buy.date.slice(0, 10) > localDate(deps.now)) return fail(400, 'A buy cannot be dated in the future')
   // Checked against Yahoo again here, so a mistyped or forged symbol cannot create a position the worker could never price.
   let quote: Awaited<ReturnType<typeof quoteSymbol>>
   try {

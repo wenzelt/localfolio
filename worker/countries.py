@@ -12,6 +12,7 @@ import time
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
+from worker.clock import local_today
 from worker.symbols import yahoo_symbol
 
 
@@ -120,7 +121,7 @@ def cached_from_other_source(connection, symbol, source):
     return row is not None and row[0] != source
 
 
-def refresh_countries(connection, symbols, fund_isins, ticker_factory=None, fetch=fetch_page, pause=time.sleep, look_through=True):
+def refresh_countries(connection, symbols, fund_isins, ticker_factory=None, fetch=fetch_page, pause=time.sleep, look_through=True, today=None):
     if ticker_factory is None:
         import yfinance
         ticker_factory = yfinance.Ticker
@@ -154,7 +155,7 @@ def refresh_countries(connection, symbols, fund_isins, ticker_factory=None, fetc
                 if info.get('quoteType') == 'EQUITY' and info.get('country'):
                     weights = {info['country']: '100'}
                     source = f'https://finance.yahoo.com/quote/{quote_symbol}/profile/'
-                    as_of = date.today()
+                    as_of = today or local_today()
                 elif look_through and info.get('quoteType') in FUND_TYPES:
                     source = f'https://finance.yahoo.com/quote/{quote_symbol}/holdings/'
                     if cached_from_other_source(connection, symbol, source):
@@ -216,7 +217,7 @@ def main():
     from worker.refresh import load_activities, plan_refresh
     mapping = {} if args.stocks_only or args.yahoo_only else json.loads(args.mapping.read_text())
     with psycopg.connect(os.environ.get('DATABASE_URL') or '') as connection:
-        symbols = plan_refresh(load_activities(connection), date.today())['symbols']
+        symbols = plan_refresh(load_activities(connection), local_today())['symbols']
         print(f'Country compositions refreshed: {refresh_countries(connection, symbols, mapping, look_through=not args.stocks_only)}')
 
 
