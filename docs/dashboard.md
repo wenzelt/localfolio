@@ -1,6 +1,6 @@
 # Dashboard deployment
 
-The Next.js app provides a password login, EUR invested-security value, Modified Dietz return, an SVG percentage chart (filled area, dashed 0% baseline and a marker on the latest day) and Max / 5 years / 1 year / 6 months / 3 months / 1 month / YTD / month-to-date / week-to-date / 1 day selection. Choose a timeframe and click Apply.
+The Next.js app provides a password login, EUR invested-security value, Modified Dietz return, an SVG percentage chart (filled area, dashed 0% baseline and a marker on the latest day) and a timeframe dropdown: Max, 5 years, 1 year, 6 months, 3 months, 1 month, year to date, month to date and week to date. The trailing timeframes count back calendar months; a start date on a day the target month lacks moves to that month's last day (31 March minus one month is 28 February), and no timeframe starts before the first buy. Changing the timeframe reloads the report straight away; without JavaScript, an Apply button submits the choice.
 
 ## Configure
 

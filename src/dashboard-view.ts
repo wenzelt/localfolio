@@ -2,11 +2,11 @@ import type { PerformancePeriod } from './performance-period'
 
 export const PERIODS: { value: PerformancePeriod; label: string }[] = [
   { value: 'MAX', label: 'Max' },
-  { value: '1M', label: '1 month' },
-  { value: '3M', label: '3 months' },
-  { value: '6M', label: '6 months' },
-  { value: '1Y', label: '1 year' },
   { value: '5Y', label: '5 years' },
+  { value: '1Y', label: '1 year' },
+  { value: '6M', label: '6 months' },
+  { value: '3M', label: '3 months' },
+  { value: '1M', label: '1 month' },
   { value: 'YTD', label: 'Year to date' },
   { value: 'MTD', label: 'Month to date' },
   { value: 'WTD', label: 'Week to date' },
