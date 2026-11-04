@@ -1,6 +1,6 @@
 # Dashboard deployment
 
-The Next.js app provides a password login, EUR invested-security value, Modified Dietz return, an SVG percentage chart (filled area, dashed 0% baseline and a marker on the latest day) and Max / 1 year / YTD / month-to-date / week-to-date / 1 day selection. Choose a timeframe and click Apply.
+The Next.js app provides a password login, EUR invested-security value, Modified Dietz return, an SVG percentage chart (filled area, dashed 0% baseline and a marker on the latest day) and Max / 5 years / 1 year / 6 months / 3 months / 1 month / YTD / month-to-date / week-to-date / 1 day selection. Choose a timeframe and click Apply.
 
 ## Configure
 

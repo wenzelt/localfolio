@@ -18,10 +18,15 @@ describe('performance period boundaries', () => {
     ['3M', '2025-05-31', '2025-02-28'],
     ['6M', '2025-02-05', '2024-08-05'],
     ['6M', '2025-08-31', '2025-02-28'],
-    ['5Y', '2025-02-05', '2020-02-05'],
-    ['5Y', '2024-02-29', '2019-02-28'],
   ] as const)('%s on %s starts at %s', (period, asOf, expected) => {
     expect(performanceStart(period, asOf, '2022-01-03')).toBe(expected)
+  })
+
+  it.each([
+    ['2025-02-05', '2020-02-05'],
+    ['2024-02-29', '2019-02-28'],
+  ])('5Y on %s starts at %s', (asOf, expected) => {
+    expect(performanceStart('5Y', asOf, '2015-01-03')).toBe(expected)
   })
 
   it('never starts before the first activity', () => {

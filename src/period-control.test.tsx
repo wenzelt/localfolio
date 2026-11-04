@@ -35,7 +35,7 @@ describe('automatic timeframe control', () => {
 
   it('renders all timeframe choices and only offers Apply as a no-script fallback', () => {
     const html = renderToStaticMarkup(<PeriodControl period="YTD" />)
-    expect(html.match(/<option /g)).toHaveLength(5)
+    expect(html.match(/<option /g)).toHaveLength(9)
     expect(html).toContain('value="YTD" selected=""')
     expect(html).toMatch(/<noscript><button type="submit">Apply<\/button><\/noscript>/)
     expect(html).toContain('name="account" value="broker"')
