@@ -12,10 +12,6 @@ export const PERIODS: { value: PerformancePeriod; label: string }[] = [
   { value: 'WTD', label: 'Week to date' },
 ]
 
-export function parsePeriod(value: string | undefined): PerformancePeriod {
-  return PERIODS.find((period) => period.value === value)?.value ?? 'MAX'
-}
-
 const hundredths = (value: string) => Math.round(Number(value) * 100)
 const euro = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' })
 
