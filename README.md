@@ -233,6 +233,8 @@ npm run lint
 npm run test:coverage
 ```
 
+GitHub Actions runs the same checks on every pull request and on pushes to `main`: lint, typecheck, Python and Vitest coverage, the Playwright suite in each browser, and both Docker builds. CodeQL scans weekly and on pull requests, and Dependabot proposes weekly updates. Require the `CI passed` check in branch protection.
+
 Tests use the synthetic-only `portfolio_test` database and need the Python test environment described in [docs/yfinance-worker.md](docs/yfinance-worker.md).
 
 Browser checks use Playwright Chromium, Firefox and WebKit:
