@@ -168,6 +168,19 @@ class CountryTests(unittest.TestCase):
         self.assertEqual(len(inserts), 1)
         self.assertEqual(inserts[0].args[1][0], 'STOCK')
 
+    def test_dates_a_stock_headquarters_lookup_on_the_owners_day(self):
+        def ticker_factory(symbol):
+            ticker = MagicMock()
+            ticker.get_info.return_value = {'quoteType': 'EQUITY', 'country': 'Germany'}
+            return ticker
+        connection = cache()
+        refresh_countries(connection, ['STOCK'], {}, ticker_factory=ticker_factory, pause=lambda _: None, today=date(2030, 1, 2))
+        self.assertEqual(written(connection)[0][3], date(2030, 1, 2))
+        connection = cache()
+        with patch('worker.countries.local_today', return_value=date(2031, 5, 6)):
+            refresh_countries(connection, ['STOCK'], {}, ticker_factory=ticker_factory, pause=lambda _: None)
+        self.assertEqual(written(connection)[0][3], date(2031, 5, 6))
+
     def test_rejects_duplicate_and_nonfinite_weights(self):
         for rows in ['<tr><td>Japan</td><td>NaN%</td></tr>', '<tr><td>Japan</td><td>20%</td></tr><tr><td>Japan</td><td>20%</td></tr>', '<tr><td>Japan</td><td>0%</td></tr>', '<tr><td>Japan</td><td>unknown</td></tr>']:
             with self.assertRaises(ValueError):

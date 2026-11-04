@@ -266,6 +266,11 @@ class CommandTests(unittest.TestCase):
         self.assertFalse(refresh.call_args.kwargs['dry_run'])
         output.assert_called_once_with('summary')
 
+    def test_refreshes_for_the_owners_date(self):
+        with patch('worker.refresh.local_today', return_value=date(2030, 1, 2)):
+            _, _, refresh, _ = self.run_main([])
+        self.assertEqual(refresh.call_args.args[1], date(2030, 1, 2))
+
     def test_dry_run_flag_is_passed_through(self):
         _, _, refresh, _ = self.run_main(['--dry-run'])
         self.assertTrue(refresh.call_args.kwargs['dry_run'])

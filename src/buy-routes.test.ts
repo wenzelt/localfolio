@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Sql } from 'postgres'
 import { signSession } from './auth'
 import { createBuy, searchSymbolsRoute, quoteSymbolRoute } from './buy-routes'
@@ -228,6 +228,17 @@ describe('POST buy', () => {
     expect((await run({ date: '2026-06-15' })).response.status).toBe(201)
     const future = await run({ date: '2030-01-01' })
     expect(future.payload.error).toMatch(/future/i)
+  })
+
+  it("takes today in the owner's time zone", async () => {
+    // Noon UTC on 15 June is already 16 June in Kiribati, UTC+14.
+    vi.stubEnv('TZ', 'Pacific/Kiritimati')
+    try {
+      expect((await run({ date: '2026-06-16' })).response.status).toBe(201)
+      expect((await run({ date: '2026-06-17' })).response.status).toBe(400)
+    } finally {
+      vi.unstubAllEnvs()
+    }
   })
 
   it.each([

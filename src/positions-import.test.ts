@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { signSession } from './auth'
 import { createAccount } from './ledger-entry'
 import { positionsImport } from './positions-import'
@@ -61,6 +61,20 @@ describe('positions CSV import endpoint', () => {
       expect((await positionsImport(req(csv, 'import', headers), { sql, secret, now })).status).toBe(status)
     })
   })
+  it("refuses a row dated after today in the owner's time zone", async () => {
+    // Midnight UTC on 15 June is still the evening of 14 June in Los Angeles.
+    vi.stubEnv('TZ', 'America/Los_Angeles')
+    try {
+      await withIsolatedDatabase(async (sql) => {
+        const response = await positionsImport(req(csv.replace(/2026-01-02/g, '2026-06-15')), { sql, secret, now })
+        expect(response.status).toBe(400)
+        expect((await response.json()).error).toMatch(/future/)
+      })
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('bounds the request stream and skips duplicate rows within one file', async () => {
     await withIsolatedDatabase(async (sql) => {
       const deps = { sql, secret, now }

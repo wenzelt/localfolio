@@ -1,5 +1,5 @@
 import postgres from 'postgres'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { signSession } from './auth'
 import { addTransaction, createAccount } from './ledger-entry'
 import { transactionsHeader } from './transactions-csv'
@@ -15,6 +15,20 @@ const startsWithByteOrderMark = async (response: Response) =>
   [...new Uint8Array(await response.clone().arrayBuffer()).slice(0, 3)].join() === [0xef, 0xbb, 0xbf].join()
 
 describe('exporting transactions', () => {
+  it("names the file after the day in the owner's time zone", async () => {
+    // 08:30 UTC on 2 March is still 1 March in Honolulu.
+    vi.stubEnv('TZ', 'Pacific/Honolulu')
+    try {
+      await withIsolatedDatabase(async (sql) => {
+        await createAccount(sql, { name: 'Broker', currency: 'EUR' })
+        const response = await transactionsExport(request(), { sql, secret, now })
+        expect(response.headers.get('content-disposition')).toBe('attachment; filename="localfolio-transactions-2026-03-01.csv"')
+      })
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('downloads every transaction as a CSV file named after the day', async () => {
     await withIsolatedDatabase(async (sql) => {
       const broker = await createAccount(sql, { name: 'Broker', currency: 'EUR' })
