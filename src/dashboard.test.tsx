@@ -17,12 +17,12 @@ const report = {
 }
 
 describe('dashboard rendering', () => {
-  it('shows value, return, dates, an accessible chart and all five chart period choices', () => {
+  it('shows value, return, dates, an accessible chart and all nine chart period choices', () => {
     const html = renderToStaticMarkup(<Dashboard report={report} />)
     for (const text of ['€1,234.50', '+12.50%', '€100.00', '2025-01-01', '2026-01-01', 'Portfolio performance', '1 positions unpriced', 'MISSING']) expect(html).toContain(text)
     expect(html).toContain('role="img"')
     expect(html).toContain('name="period"')
-    expect(html.match(/<option /g)).toHaveLength(5)
+    expect(html.match(/<option /g)).toHaveLength(9)
     expect(html).toContain('action="/logout"')
   })
 

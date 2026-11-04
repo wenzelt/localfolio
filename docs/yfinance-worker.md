@@ -100,7 +100,7 @@ UI freshness indicators remain pending.
 
 ## Price history and performance (backend only)
 
-The ledger-driven refresh also backfills unadjusted daily closes into `security_prices`, per symbol; a failing symbol is reported and does not block the others. `readPerformanceReport(sql, asOf, period)` in `src/performance-report.ts` turns the stored ledger plus cached closes and FX into a daily EUR series for the periods `MAX`, `1Y`, `YTD`, `MTD`, `WTD` and `1D`.
+The ledger-driven refresh also backfills unadjusted daily closes into `security_prices`, per symbol; a failing symbol is reported and does not block the others. `readPerformanceReport(sql, asOf, period)` in `src/performance-report.ts` turns the stored ledger plus cached closes and FX into a daily EUR series for the periods `MAX`, `5Y`, `1Y`, `6M`, `3M`, `1M`, `YTD`, `MTD`, `WTD` and `1D`.
 
 - Percentage change is Modified Dietz, not Ghostfolio's ROAI, so figures differ slightly. Net change is closing value minus opening value minus net flows.
 - Closes and FX use the latest observation on or before the day, at most seven days old. A symbol that cannot be priced is excluded and listed as unpriced.
