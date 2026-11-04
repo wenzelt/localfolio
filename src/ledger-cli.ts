@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util'
 import type { Sql } from 'postgres'
-import { addTransaction, createAccount, hasCachedPrice, listAccounts } from './ledger-entry'
+import { addTransaction, createAccount, DuplicateTransactionError, hasCachedPrice, listAccounts } from './ledger-entry'
 
 const usage = `Usage: ledger:add account --name <name> --currency <EUR|USD> [--comment <text>]
        ledger:add accounts
@@ -39,6 +39,8 @@ export async function runLedgerCli(sql: Sql, args: string[], warn: (message: str
     const { id } = await addTransaction(sql, {
       accountId: values.account, type: values.type, date: values.date, currency: values.currency, symbol: values.symbol,
       quantity: values.quantity, unitPrice: values['unit-price'], fee: values.fee, amount: values.amount, comment: values.comment, force,
+    }).catch((error: unknown) => {
+      throw error instanceof DuplicateTransactionError ? new DuplicateTransactionError(`${error.message}; pass --force to save it again`) : error
     })
     if (values.type === 'BUY' && values.symbol !== undefined && !(await hasCachedPrice(sql, values.symbol.trim()))) {
       warn(`No price cached for ${values.symbol.trim()} yet; it is valued after the next worker refresh (docs/yfinance-worker.md), which lists a symbol Yahoo does not know as failed.`)

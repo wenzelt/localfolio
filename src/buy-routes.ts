@@ -1,4 +1,5 @@
 import type { Sql } from 'postgres'
+import { InputError } from './input-error'
 import { addTransaction, DuplicateTransactionError, hasCachedPrice } from './ledger-entry'
 import { quoteSymbol, searchSymbols } from './yahoo'
 import { authenticated, sameOrigin } from './web-auth'
@@ -79,8 +80,7 @@ export async function createBuy(request: Request, deps: Deps & { sql: Sql }): Pr
     return reply({ id, priced: await hasCachedPrice(deps.sql, symbol) }, 201)
   } catch (error) {
     if (error instanceof DuplicateTransactionError) return fail(409, error.message, { duplicate: true })
-    // Validation problems are plain errors; database errors carry a code and stay out of the response.
-    if (error instanceof Error && !('code' in error)) return fail(400, error.message)
+    if (error instanceof InputError) return fail(400, error.message)
     return fail(500, 'The buy could not be saved')
   }
 }

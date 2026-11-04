@@ -1,7 +1,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { Sql } from 'postgres'
 import { z } from 'zod'
-import { addTransaction, DuplicateTransactionError } from './ledger-entry'
+import { InputError } from './input-error'
+import { addTransaction } from './ledger-entry'
 import { readLedger } from './ledger-store'
 import { readMcpActivities } from './mcp-activities'
 import { readValuationReport } from './valuation-report'
@@ -19,11 +20,10 @@ async function handled(run: () => Promise<Record<string, unknown>>, writing = fa
   try {
     return result(await run())
   } catch (error) {
-    const message = error instanceof Error ? error.message : ''
-    const expected = error instanceof DuplicateTransactionError || /^(Invalid (date|amount|quantity|unit price|fee|valuation date)|Unknown account|Sell exceeds holdings|Quantity and unit price are only for trades|Amount is only for cash movements|Symbol is required|A (deposit|withdrawal|fee) has no symbol|Valuation date precedes imported activity)/.test(message)
+    // A refused entry saved nothing, so its reason is the answer; anything else may have failed after the commit.
     return {
       isError: true,
-      content: [{ type: 'text' as const, text: expected ? message : writing
+      content: [{ type: 'text' as const, text: error instanceof InputError ? error.message : writing
         ? 'The transaction could not be confirmed. Check activities before retrying; it may have committed.'
         : 'Portfolio data could not be read.' }],
     }

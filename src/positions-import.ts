@@ -2,8 +2,8 @@ import type { Sql } from 'postgres'
 import { authenticated, sameOrigin } from './web-auth'
 import { parsePositionsCsv } from './positions-csv'
 import { ensureLedgerSchema } from './ledger-store'
+import { InputError } from './input-error'
 
-class InputError extends Error {}
 const reply = (status: number, body: unknown) => Response.json(body, { status, headers: { 'cache-control': 'no-store' } })
 
 export async function positionsImport(request: Request, { sql, secret, now }: { sql: Sql; secret: string; now: number }): Promise<Response> {
