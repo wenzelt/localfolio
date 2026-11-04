@@ -45,6 +45,26 @@ describe('Ghostfolio export upload endpoint', () => {
     })
   })
 
+  it('rejects an export that sells more than it holds, names where, and saves nothing', async () => {
+    await withIsolatedDatabase(async (sql) => {
+      const document = JSON.parse(sample)
+      document.activities.push({ ...document.activities[0], type: 'SELL', quantity: 11, date: '2025-07-01T00:00:00.000Z' })
+      const response = await ghostfolioImport(req(JSON.stringify(document)), { sql, secret, now })
+      expect(response.status).toBe(400)
+      expect(await response.json()).toEqual({ error: 'Import rejected: Example broker sells more VWCE.DE than it holds on 2025-07-01' })
+      expect(await sql`SELECT to_regclass('accounts') AS name`).toMatchObject([{ name: null }])
+    })
+  })
+
+  it('accepts a sale covered by a buy that is already in the ledger', async () => {
+    await withIsolatedDatabase(async (sql) => {
+      expect((await ghostfolioImport(req(), { sql, secret, now })).status).toBe(200)
+      const document = JSON.parse(sample)
+      document.activities = [{ ...document.activities[0], type: 'SELL', quantity: 10, date: '2025-07-01T00:00:00.000Z' }]
+      expect((await ghostfolioImport(req(JSON.stringify(document)), { sql, secret, now })).status).toBe(200)
+    })
+  })
+
   it('requires a signed-in owner and a same-origin request', async () => {
     await withIsolatedDatabase(async (sql) => {
       const deps = { sql, secret, now }

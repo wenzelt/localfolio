@@ -9,7 +9,7 @@ export type Transaction = {
   eurPerUsd?: string
 }
 
-// Transactions must be supplied in chronological order for one account and instrument.
+// Transactions must be for one account and instrument, sorted with `chronological` from ledger-store.
 export function calculatePosition(transactions: Transaction[], reportingCurrency?: 'EUR', quote?: { price: string; currency: string; eurPerUsd?: string }) {
   if (transactions.length === 0) {
     throw new Error('At least one transaction is required')

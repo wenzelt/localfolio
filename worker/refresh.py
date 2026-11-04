@@ -6,12 +6,14 @@ from collections import defaultdict
 from datetime import date, timedelta
 from decimal import Decimal
 
+from worker.clock import local_today
 from worker.fx import refresh_rates
 from worker.prices import refresh_price_history
 from worker.quotes import refresh_quotes
 
-# A quote may be 7 days old and its FX rate up to 7 days older than the quote.
-QUOTE_FX_WINDOW_DAYS = 14
+# Closes and rates are read up to this many days back, so a trade on a weekend or a holiday needs the week before it.
+# A quote may also be this old, so its rate can lie up to twice as far back.
+LOOKBACK_DAYS = 7
 
 # The intraday refresh only re-fetches this many days; today's bar is the one that moves.
 INTRADAY_WINDOW_DAYS = 7
@@ -29,18 +31,54 @@ def load_activities(connection):
             for account, kind, symbol, currency, quantity, day in rows]
 
 
-def plan_refresh(activities, today):
+def load_stored_ranges(connection):
+    """The first and last stored day of each symbol's closes and of the USD/EUR rates."""
+    prices, fx = {}, None
+    if connection.execute("SELECT to_regclass('security_prices')").fetchone()[0] is not None:
+        prices = {symbol: (first, last) for symbol, first, last in connection.execute(
+            'SELECT symbol, min(observed_on), max(observed_on) FROM security_prices GROUP BY symbol').fetchall()}
+    if connection.execute("SELECT to_regclass('fx_observations')").fetchone()[0] is not None:
+        first, last = connection.execute('SELECT min(observed_on), max(observed_on) FROM fx_observations').fetchone()
+        fx = None if first is None else (first, last)
+    return {'prices': prices, 'fx': fx}
+
+
+def refresh_start(first_needed, stored):
+    """Where to start fetching. Stored rows do not change, so only the last week of them is fetched again, which picks up
+    a late correction and today's bar. Without stored rows, or when a trade predates them, fetch from before that day."""
+    lookback = timedelta(days=LOOKBACK_DAYS)
+    if stored is None or stored[0] > first_needed:
+        return first_needed - lookback
+    return stored[1] - lookback
+
+
+def plan_refresh(activities, today, stored=None):
+    stored = stored or {'prices': {}, 'fx': None}
     usd_dates = [date.fromisoformat(a['date'][:10]) for a in activities if a['currency'] == 'USD']
     quantities = defaultdict(Decimal)
-    trade_dates = [date.fromisoformat(a['date'][:10]) for a in activities]
+    first_trades, last_trades = {}, {}
     for a in activities:
         quantities[(a['accountId'], a['symbol'])] += Decimal(str(a['quantity'])) * (1 if a['type'] == 'BUY' else -1)
+        day = date.fromisoformat(a['date'][:10])
+        first_trades[a['symbol']] = min(first_trades.get(a['symbol'], day), day)
+        last_trades[a['symbol']] = max(last_trades.get(a['symbol'], day), day)
+    held = sorted({symbol for (_, symbol), quantity in quantities.items() if quantity > 0})
+
+    def covered(symbol):
+        """A closed position needs closes only up to its last trade, read up to a week back."""
+        rows = stored['prices'].get(symbol)
+        lookback = timedelta(days=LOOKBACK_DAYS)
+        return symbol not in held and rows is not None and rows[0] <= first_trades[symbol] and rows[1] >= last_trades[symbol] - lookback
+
+    history_starts = {symbol: refresh_start(first, stored['prices'].get(symbol))
+                      for symbol, first in sorted(first_trades.items()) if not covered(symbol)}
     return {
-        'fxStart': min(usd_dates + [today - timedelta(days=QUOTE_FX_WINDOW_DAYS)]),
+        'fxStart': refresh_start(min(usd_dates + [today - timedelta(days=LOOKBACK_DAYS)]), stored['fx']),
         'fxEnd': today,
-        'symbols': sorted({symbol for (_, symbol), quantity in quantities.items() if quantity > 0}),
-        'historyStart': min(trade_dates, default=None),
-        'historySymbols': sorted({symbol for _, symbol in quantities}),
+        'symbols': held,
+        'historyStart': min(history_starts.values(), default=None),
+        'historyStarts': history_starts,
+        'historySymbols': sorted(first_trades),
     }
 
 
@@ -50,13 +88,13 @@ def failure_reason(error):
 
 def refresh_import(connection, today, dry_run=False, rates=refresh_rates, quotes=refresh_quotes,
                    prices=refresh_price_history):
-    plan = plan_refresh(load_activities(connection), today)
+    plan = plan_refresh(load_activities(connection), today, load_stored_ranges(connection))
     start, end = plan['fxStart'].isoformat(), plan['fxEnd'].isoformat()
     history_start = plan['historyStart'].isoformat() if plan['historyStart'] else None
     if dry_run:
         history = f'{history_start}..{end}' if history_start else 'none'
         return (f"Dry run: FX {start}..{end}, {len(plan['symbols'])} quote symbols, "
-                f"price history {history} for {len(plan['historySymbols'])} symbols; nothing fetched or written")
+                f"price history {history} for {len(plan['historyStarts'])} symbols; nothing fetched or written")
     fx_count = rates(connection, start, end)
     quote_count = price_count = 0
     failures = []
@@ -65,9 +103,9 @@ def refresh_import(connection, today, dry_run=False, rates=refresh_rates, quotes
             quote_count += quotes(connection, [symbol])
         except Exception as error:
             failures.append(f'{symbol} ({failure_reason(error)})')
-    for symbol in plan['historySymbols']:
+    for symbol, first_day in plan['historyStarts'].items():
         try:
-            price_count += prices(connection, [symbol], history_start, end)
+            price_count += prices(connection, [symbol], first_day.isoformat(), end)
         except Exception as error:
             failures.append(f'{symbol} history ({failure_reason(error)})')
     summary = (f'Processed {fx_count} FX observations, {quote_count} security quotes '
@@ -122,14 +160,15 @@ def main(argv=None):
         parser.error('--intraday cannot be combined with --dry-run')
 
     def run():
+        today = local_today()
         with psycopg.connect(os.environ['DATABASE_URL']) as connection:
             if args.intraday:
-                summary = refresh_intraday(connection, date.today())
+                summary = refresh_intraday(connection, today)
             else:
-                summary = refresh_import(connection, date.today(), dry_run=args.dry_run)
+                summary = refresh_import(connection, today, dry_run=args.dry_run)
             if not args.dry_run:
                 from worker.names import refresh_names
-                symbols = plan_refresh(load_activities(connection), date.today())['historySymbols']
+                symbols = plan_refresh(load_activities(connection), today)['historySymbols']
                 refresh_names(connection, symbols)
             return summary
 

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { Dashboard, LoginForm } from './dashboard'
+import { PERIODS } from './dashboard-view'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -17,12 +18,12 @@ const report = {
 }
 
 describe('dashboard rendering', () => {
-  it('shows value, return, dates, an accessible chart and all nine chart period choices', () => {
+  it('shows value, return, dates, an accessible chart and every chart period choice', () => {
     const html = renderToStaticMarkup(<Dashboard report={report} />)
     for (const text of ['€1,234.50', '+12.50%', '€100.00', '2025-01-01', '2026-01-01', 'Portfolio performance', '1 positions unpriced', 'MISSING']) expect(html).toContain(text)
     expect(html).toContain('role="img"')
     expect(html).toContain('name="period"')
-    expect(html.match(/<option /g)).toHaveLength(9)
+    expect(html.match(/<option /g)).toHaveLength(PERIODS.length)
     expect(html).toContain('action="/logout"')
   })
 

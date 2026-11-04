@@ -3,7 +3,7 @@ import unittest
 from datetime import date
 from unittest.mock import MagicMock, call, patch
 
-from worker.refresh import load_activities, main, plan_refresh, refresh_import, refresh_intraday, run_every
+from worker.refresh import load_activities, load_stored_ranges, main, plan_refresh, refresh_import, refresh_intraday, run_every
 
 TODAY = date(2026, 3, 20)
 
@@ -18,12 +18,23 @@ def document(*activities):
 
 
 class PlanRefreshTests(unittest.TestCase):
-    def test_fx_range_starts_at_earliest_usd_trade_and_ends_today(self):
+    def test_fx_range_starts_a_week_before_the_earliest_usd_trade_and_ends_today(self):
+        # Rates are read up to seven days back, so a trade on a weekend needs the week before it.
         plan = plan_refresh(document(
             trade('BUY', 'A', 1, 'USD', '2020-02-03'),
             trade('BUY', 'B', 1, 'USD', '2024-06-01'),
             trade('BUY', 'C', 1, 'EUR', '2019-01-01')), TODAY)
-        self.assertEqual((plan['fxStart'], plan['fxEnd']), (date(2020, 2, 3), TODAY))
+        self.assertEqual((plan['fxStart'], plan['fxEnd']), (date(2020, 1, 27), TODAY))
+
+    def test_stored_rates_are_only_extended(self):
+        stored = {'prices': {}, 'fx': (date(2020, 1, 27), date(2026, 3, 19))}
+        plan = plan_refresh(document(trade('BUY', 'A', 1, 'USD', '2020-02-03')), TODAY, stored)
+        self.assertEqual(plan['fxStart'], date(2026, 3, 12))
+
+    def test_stored_rates_that_start_after_a_usd_trade_are_fetched_again_from_before_it(self):
+        stored = {'prices': {}, 'fx': (date(2025, 6, 2), date(2026, 3, 19))}
+        plan = plan_refresh(document(trade('BUY', 'A', 1, 'USD', '2020-02-03')), TODAY, stored)
+        self.assertEqual(plan['fxStart'], date(2020, 1, 27))
 
     def test_fx_range_always_covers_the_quote_date_fx_window(self):
         # A quote may be 7 days old and its FX up to 7 days earlier than the quote.
@@ -55,10 +66,23 @@ class PlanRefreshTests(unittest.TestCase):
 
 
 class PlanHistoryTests(unittest.TestCase):
-    def test_history_starts_at_the_earliest_trade_in_any_currency(self):
+    def test_each_symbol_starts_a_week_before_its_own_first_trade(self):
+        # Closes are read up to seven days back, so a first buy on a weekend needs the Friday close before it.
         plan = plan_refresh(document(
-            trade('BUY', 'A', 1, 'EUR', '2025-03-01'), trade('BUY', 'B', 1, 'USD', '2025-06-01')), TODAY)
-        self.assertEqual(plan['historyStart'], date(2025, 3, 1))
+            trade('BUY', 'A', 1, 'EUR', '2025-03-01'), trade('BUY', 'B', 1, 'USD', '2025-06-01'),
+            trade('BUY', 'A', 1, 'EUR', '2025-08-01')), TODAY)
+        self.assertEqual(plan['historyStarts'], {'A': date(2025, 2, 22), 'B': date(2025, 5, 25)})
+        self.assertEqual(plan['historyStart'], date(2025, 2, 22))
+
+    def test_stored_history_is_only_extended_from_a_week_before_its_last_day(self):
+        stored = {'prices': {'A': (date(2025, 2, 24), date(2026, 3, 19))}, 'fx': None}
+        plan = plan_refresh(document(trade('BUY', 'A', 1, 'EUR', '2025-03-01')), TODAY, stored)
+        self.assertEqual(plan['historyStarts'], {'A': date(2026, 3, 12)})
+
+    def test_a_trade_before_the_stored_history_fetches_the_symbol_again_from_before_it(self):
+        stored = {'prices': {'A': (date(2025, 6, 2), date(2026, 3, 19)), 'B': (date(2025, 1, 2), date(2026, 3, 19))}, 'fx': None}
+        plan = plan_refresh(document(trade('BUY', 'A', 1, 'EUR', '2025-03-01'), trade('BUY', 'B', 1, 'EUR', '2025-03-01')), TODAY, stored)
+        self.assertEqual(plan['historyStarts'], {'A': date(2025, 2, 22), 'B': date(2026, 3, 12)})
 
     def test_history_symbols_include_closed_positions_once_and_sorted(self):
         plan = plan_refresh(document(
@@ -67,9 +91,60 @@ class PlanHistoryTests(unittest.TestCase):
         self.assertEqual(plan['historySymbols'], ['CLOSED', 'ZZZ'])
         self.assertEqual(plan['symbols'], ['ZZZ'])
 
+    def test_a_closed_position_whose_stored_history_covers_its_trades_is_not_fetched(self):
+        # The sale was on a Saturday; the Friday close before it is the one it is valued at.
+        activities = document(trade('BUY', 'GONE', 2, day='2025-02-03'), trade('SELL', 'GONE', 2, day='2025-05-03'),
+                              trade('BUY', 'HELD', 1, day='2025-02-03'))
+        stored = {'prices': {'GONE': (date(2025, 1, 27), date(2025, 5, 2)), 'HELD': (date(2025, 1, 27), date(2026, 3, 19))}, 'fx': None}
+        plan = plan_refresh(activities, TODAY, stored)
+        self.assertEqual(plan['historyStarts'], {'HELD': date(2026, 3, 12)})
+        self.assertEqual(plan['historySymbols'], ['GONE', 'HELD'])
+
+    def test_a_closed_position_missing_part_of_its_history_is_still_fetched(self):
+        activities = document(trade('BUY', 'GONE', 2, day='2025-02-03'), trade('SELL', 'GONE', 2, day='2025-05-03'))
+        for stored_range, start in [(None, date(2025, 1, 27)),
+                                    ((date(2025, 1, 27), date(2025, 3, 1)), date(2025, 2, 22)),
+                                    ((date(2025, 3, 3), date(2025, 6, 2)), date(2025, 1, 27))]:
+            with self.subTest(stored=stored_range):
+                stored = {'prices': {} if stored_range is None else {'GONE': stored_range}, 'fx': None}
+                self.assertEqual(plan_refresh(activities, TODAY, stored)['historyStarts'], {'GONE': start})
+
     def test_empty_import_has_no_history(self):
         plan = plan_refresh(document(), TODAY)
-        self.assertEqual((plan['historyStart'], plan['historySymbols']), (None, []))
+        self.assertEqual((plan['historyStart'], plan['historySymbols'], plan['historyStarts']), (None, [], {}))
+
+
+class LoadStoredRangesTests(unittest.TestCase):
+    def connection(self, answers):
+        connection = MagicMock()
+        def execute(query):
+            result = MagicMock()
+            key = next(key for key in answers if key in query)
+            result.fetchone.return_value, result.fetchall.return_value = answers[key]
+            return result
+        connection.execute.side_effect = execute
+        return connection
+
+    def test_reads_the_first_and_last_stored_day_of_each_symbol_and_of_the_rates(self):
+        connection = self.connection({
+            "to_regclass('security_prices')": (('security_prices',), None),
+            'FROM security_prices': (None, [('A', date(2025, 1, 2), date(2026, 3, 19))]),
+            "to_regclass('fx_observations')": (('fx_observations',), None),
+            'FROM fx_observations': ((date(2024, 12, 26), date(2026, 3, 19)), None),
+        })
+        self.assertEqual(load_stored_ranges(connection), {
+            'prices': {'A': (date(2025, 1, 2), date(2026, 3, 19))}, 'fx': (date(2024, 12, 26), date(2026, 3, 19))})
+
+    def test_nothing_is_stored_before_the_first_refresh(self):
+        connection = self.connection({
+            "to_regclass('security_prices')": ((None,), None), "to_regclass('fx_observations')": ((None,), None)})
+        self.assertEqual(load_stored_ranges(connection), {'prices': {}, 'fx': None})
+
+    def test_an_empty_rate_table_has_no_range(self):
+        connection = self.connection({
+            "to_regclass('security_prices')": ((None,), None),
+            "to_regclass('fx_observations')": (('fx_observations',), None), 'FROM fx_observations': ((None, None), None)})
+        self.assertEqual(load_stored_ranges(connection)['fx'], None)
 
 
 class LoadActivitiesTests(unittest.TestCase):
@@ -97,9 +172,11 @@ class RefreshImportTests(unittest.TestCase):
     def setUp(self):
         self.connection = MagicMock()
         self.activities = document(trade('BUY', 'AAA', 1, 'USD', '2025-01-02'), trade('BUY', 'BBB', 1))
-        patcher = patch('worker.refresh.load_activities', side_effect=lambda connection: self.activities)
-        patcher.start()
-        self.addCleanup(patcher.stop)
+        self.stored = {'prices': {}, 'fx': None}
+        for name, value in (('load_activities', lambda: self.activities), ('load_stored_ranges', lambda: self.stored)):
+            patcher = patch(f'worker.refresh.{name}', side_effect=lambda connection, value=value: value())
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def refresh(self, **overrides):
         options = {'rates': MagicMock(return_value=7), 'quotes': MagicMock(return_value=1),
@@ -110,8 +187,8 @@ class RefreshImportTests(unittest.TestCase):
     def test_dry_run_reports_plan_without_fetching_or_writing(self):
         rates, quotes, prices = MagicMock(), MagicMock(), MagicMock()
         summary = self.refresh(dry_run=True, rates=rates, quotes=quotes, prices=prices)
-        self.assertEqual(summary, 'Dry run: FX 2025-01-02..2026-03-20, 2 quote symbols, '
-                                  'price history 2025-01-02..2026-03-20 for 2 symbols; nothing fetched or written')
+        self.assertEqual(summary, 'Dry run: FX 2024-12-26..2026-03-20, 2 quote symbols, '
+                                  'price history 2024-12-26..2026-03-20 for 2 symbols; nothing fetched or written')
         for fetcher in (rates, quotes, prices):
             fetcher.assert_not_called()
         self.assertNotIn('AAA', summary)
@@ -128,12 +205,21 @@ class RefreshImportTests(unittest.TestCase):
         order.quotes.return_value = 1
         order.prices.side_effect = [3, 2]
         summary = self.refresh(rates=order.rates, quotes=order.quotes, prices=order.prices)
-        self.assertEqual(order.mock_calls, [call.rates(self.connection, '2025-01-02', '2026-03-20'),
+        self.assertEqual(order.mock_calls, [call.rates(self.connection, '2024-12-26', '2026-03-20'),
                                             call.quotes(self.connection, ['AAA']),
                                             call.quotes(self.connection, ['BBB']),
-                                            call.prices(self.connection, ['AAA'], '2025-01-02', '2026-03-20'),
-                                            call.prices(self.connection, ['BBB'], '2025-01-02', '2026-03-20')])
+                                            call.prices(self.connection, ['AAA'], '2024-12-26', '2026-03-20'),
+                                            call.prices(self.connection, ['BBB'], '2025-12-29', '2026-03-20')])
         self.assertEqual(summary, 'Processed 7 FX observations, 2 security quotes and 5 price history rows')
+
+    def test_fetches_only_the_last_week_of_what_is_already_stored(self):
+        self.stored = {'prices': {'AAA': (date(2024, 12, 27), date(2026, 3, 19)), 'BBB': (date(2025, 12, 29), date(2026, 3, 19))},
+                       'fx': (date(2024, 12, 26), date(2026, 3, 19))}
+        rates, prices = MagicMock(return_value=5), MagicMock(return_value=5)
+        self.refresh(rates=rates, prices=prices)
+        rates.assert_called_once_with(self.connection, '2026-03-12', '2026-03-20')
+        self.assertEqual(prices.call_args_list, [call(self.connection, ['AAA'], '2026-03-12', '2026-03-20'),
+                                                 call(self.connection, ['BBB'], '2026-03-12', '2026-03-20')])
 
     def test_one_failing_symbol_does_not_stop_the_others(self):
         quotes = MagicMock(side_effect=[ValueError('AAA: possibly delisted\nsecond line'), 1])
@@ -159,6 +245,13 @@ class RefreshImportTests(unittest.TestCase):
         self.assertEqual(summary, 'Processed 7 FX observations, 2 security quotes and 4 price history rows; '
                                   '1 failed: AAA history (no data)')
 
+    def test_dry_run_counts_only_the_symbols_it_would_fetch(self):
+        self.activities = document(trade('BUY', 'GONE', 2, day='2025-02-03'), trade('SELL', 'GONE', 2, day='2025-05-03'))
+        self.stored = {'prices': {'GONE': (date(2025, 1, 27), date(2025, 5, 2))}, 'fx': None}
+        summary = self.refresh(dry_run=True)
+        self.assertEqual(summary, 'Dry run: FX 2026-03-06..2026-03-20, 0 quote symbols, '
+                                  'price history none for 0 symbols; nothing fetched or written')
+
     def test_price_history_covers_closed_positions_but_quotes_do_not(self):
         self.activities = document(
             trade('BUY', 'HELD', 1, day='2025-04-01'),
@@ -166,8 +259,8 @@ class RefreshImportTests(unittest.TestCase):
         quotes, prices = MagicMock(return_value=1), MagicMock(return_value=1)
         self.refresh(quotes=quotes, prices=prices)
         self.assertEqual(quotes.call_args_list, [call(self.connection, ['HELD'])])
-        self.assertEqual(prices.call_args_list, [call(self.connection, ['GONE'], '2025-02-01', '2026-03-20'),
-                                                 call(self.connection, ['HELD'], '2025-02-01', '2026-03-20')])
+        self.assertEqual(prices.call_args_list, [call(self.connection, ['GONE'], '2025-01-25', '2026-03-20'),
+                                                 call(self.connection, ['HELD'], '2025-03-25', '2026-03-20')])
 
     def test_skips_quotes_and_prices_when_there_are_no_trades(self):
         self.activities = document()
@@ -265,6 +358,11 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(refresh.call_args.args[:1], (connection.__enter__.return_value,))
         self.assertFalse(refresh.call_args.kwargs['dry_run'])
         output.assert_called_once_with('summary')
+
+    def test_refreshes_for_the_owners_date(self):
+        with patch('worker.refresh.local_today', return_value=date(2030, 1, 2)):
+            _, _, refresh, _ = self.run_main([])
+        self.assertEqual(refresh.call_args.args[1], date(2030, 1, 2))
 
     def test_dry_run_flag_is_passed_through(self):
         _, _, refresh, _ = self.run_main(['--dry-run'])

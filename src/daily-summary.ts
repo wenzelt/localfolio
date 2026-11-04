@@ -1,11 +1,8 @@
-import { add, decimalToFraction, divide, formatFraction, multiply, subtract } from './fraction'
-import type { Fraction } from './fraction'
+import { add, decimalToFraction, divide, formatFraction, multiply, subtract, signedDecimalToFraction } from './fraction'
 
 const zero = decimalToFraction('0')
 const one = decimalToFraction('1')
 const hundred = decimalToFraction('100')
-
-const signed = (value: string): Fraction => value.startsWith('-') ? subtract(zero, decimalToFraction(value.slice(1))) : decimalToFraction(value)
 
 // Today's move across positions, summed from each one's latest session so it agrees with the movement tiles.
 // The percentage is relative to what the counted positions were worth the session before.
@@ -22,12 +19,12 @@ export function dailySummary(items: { value: string | null; changePercent: strin
       excluded++
       continue
     }
-    const factor = add(one, divide(signed(item.changePercent), hundred))
+    const factor = add(one, divide(signedDecimalToFraction(item.changePercent), hundred))
     if (factor.numerator <= 0n) {
       excluded++
       continue
     }
-    const value = signed(item.value)
+    const value = signedDecimalToFraction(item.value)
     const previous = divide(value, factor)
     change = add(change, subtract(value, previous))
     previousTotal = add(previousTotal, previous)

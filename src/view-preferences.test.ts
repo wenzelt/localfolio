@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { PERIODS } from './dashboard-view'
 import { preferenceCookies, resolveViewPreferences, savePreferences } from './view-preferences'
 
 describe('resolving view preferences', () => {
@@ -26,6 +27,17 @@ describe('resolving view preferences', () => {
     expect(resolveViewPreferences({ hide: 'maybe' }, 'view_hide=1').hidden).toBe(true)
     expect(resolveViewPreferences({ hide: 'maybe' }, 'view_hide=2').hidden).toBe(false)
     expect(resolveViewPreferences({}, 'view_period=bad').period).toBe('MAX')
+  })
+
+  it('accepts every offered period from the URL and from the saved cookie', () => {
+    for (const { value } of PERIODS) {
+      expect(resolveViewPreferences({ period: value }, 'view_period=MAX').period).toBe(value)
+      expect(resolveViewPreferences({}, `view_period=${value}`).period).toBe(value)
+    }
+  })
+
+  it('treats a lower-case or padded period as unknown', () => {
+    for (const value of ['ytd', '5y', ' 1M', 'ALL', '1Y; DROP']) expect(resolveViewPreferences({ period: value }, null).period).toBe('MAX')
   })
 
   it('falls back to MAX for the retired 1D period from the cookie', () => {

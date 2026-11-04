@@ -146,6 +146,12 @@ describe('compose service contract', () => {
     }
   })
 
+  it("gives the app and every worker the owner's time zone, UTC unless TZ is set", () => {
+    const zoneFromEnv = '$' + '{TZ:-UTC}'
+    for (const name of databaseClients) expect(service(name), name).toContain(`TZ: ${zoneFromEnv}`)
+    expect(read('.env.example')).toMatch(/^# TZ=UTC$/m)
+  })
+
   it('clears DATABASE_URL in containers, so a host-side value pointing at 127.0.0.1 cannot override the PG settings', () => {
     for (const name of databaseClients) expect(service(name), name).toContain('DATABASE_URL: ""')
   })

@@ -66,7 +66,7 @@ Example trade arguments (replace the synthetic account ID using `list_accounts`)
 
 Types: `BUY`, `SELL`, `DIVIDEND`, `DEPOSIT`, `WITHDRAWAL`, `FEE`. Currencies: EUR and USD. Decimals must be strings. Trades use `symbol`, `quantity`, `unitPrice`, and optional `fee`. Cash entries use `amount` instead of quantity and unit price; only dividends may include a symbol. `comment` is optional. Dates accept a calendar date or a timestamp with an explicit timezone.
 
-Existing validation, account locking, overselling protection, and duplicate detection apply. No `force` override is available. **Never automatically retry after a lost response or infrastructure error:** the write may have committed. Inspect activities first. Duplicate detection is not a general idempotency-key mechanism.
+Existing validation, account locking, overselling protection, and duplicate detection apply. No `force` override is available. A refused entry (unknown account, overselling, a duplicate or invalid input) answers with its reason and saves nothing. **Never automatically retry after a lost response or infrastructure error:** the write may have committed. Inspect activities first. Duplicate detection is not a general idempotency-key mechanism.
 
 ## Security and operations
 

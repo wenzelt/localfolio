@@ -1,6 +1,6 @@
 # Dashboard deployment
 
-The Next.js app provides a password login, EUR invested-security value, Modified Dietz return, an SVG percentage chart (filled area, dashed 0% baseline and a marker on the latest day) and Max / 5 years / 1 year / 6 months / 3 months / 1 month / YTD / month-to-date / week-to-date / 1 day selection. Choose a timeframe and click Apply.
+The Next.js app provides a password login, EUR invested-security value, Modified Dietz return, an SVG percentage chart (filled area, dashed 0% baseline and a marker on the latest day) and a timeframe dropdown: Max, 5 years, 1 year, 6 months, 3 months, 1 month, year to date, month to date and week to date. The trailing timeframes count back calendar months; a start date on a day the target month lacks moves to that month's last day (31 March minus one month is 28 February), and no timeframe starts before the first buy. Changing the timeframe reloads the report straight away; without JavaScript, an Apply button submits the choice.
 
 ## Configure
 
@@ -10,9 +10,10 @@ Add these to your existing `.env` without replacing the database settings:
 APP_BIND_IP=192.168.1.10
 APP_PASSWORD=replace-with-a-long-unique-password
 SESSION_SECRET=replace-with-at-least-32-random-characters
+TZ=America/New_York
 ```
 
-Use your server's actual LAN IPv4 address. Without APP_BIND_IP, the app binds only to 127.0.0.1. Generate SESSION_SECRET locally, for example with `openssl rand -hex 32`; do not paste secrets into chat or commit them. Missing credentials fail closed. Changing SESSION_SECRET invalidates all sessions. Sessions expire after 24 hours.
+Use your server's actual LAN IPv4 address. Without APP_BIND_IP, the app binds only to 127.0.0.1. Generate SESSION_SECRET locally, for example with `openssl rand -hex 32`; do not paste secrets into chat or commit them. Set TZ to your own IANA time zone so the day starts at your midnight; without it the app and the worker use UTC, and a value that is not a zone name makes the dashboard and the buy form fail, with an error naming TZ in the container log. Missing credentials fail closed. Changing SESSION_SECRET invalidates all sessions. Sessions expire after 24 hours.
 
 ## Start
 

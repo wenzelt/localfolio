@@ -47,7 +47,8 @@ test.describe('sign in', () => {
     await expect(page).toHaveURL(/\/login/)
     await page.getByLabel('Password').fill('wrong')
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByRole('alert')).toHaveText('Incorrect password')
+    // A production build adds Next's empty route announcer, which is an alert too, so the message is found by its text.
+    await expect(page.getByRole('alert').filter({ hasText: 'Incorrect password' })).toBeVisible()
   })
 })
 
@@ -137,6 +138,22 @@ test.describe('Story 12: update filters without pressing Apply', () => {
     await timeframe.selectOption('MTD')
     await expect(page).toHaveURL(/period=MTD/)
     await expect(page.getByLabel('Timeframe')).toHaveValue('MTD')
+  })
+
+  test('a trailing timeframe counts back calendar months and never starts before the first buy', async ({ page }) => {
+    await signIn(page)
+    const timeframe = page.getByLabel('Timeframe')
+    const dates = page.locator('.dates time')
+    await timeframe.selectOption('1M')
+    await expect(page).toHaveURL(/period=1M/)
+    await expect(page.locator('.period[aria-busy="true"]')).toHaveCount(0)
+    const [from, to] = await dates.allInnerTexts()
+    expect([28, 29, 30, 31]).toContain((Date.parse(to) - Date.parse(from)) / 86_400_000)
+
+    // The seed's first buy is 300 days ago, so five years starts there.
+    await timeframe.selectOption('5Y')
+    await expect(page).toHaveURL(/period=5Y/)
+    await expect(dates.first()).toHaveText(new Date(Date.now() - 300 * 86_400_000).toISOString().slice(0, 10))
   })
 })
 

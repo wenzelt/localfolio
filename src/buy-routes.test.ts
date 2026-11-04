@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Sql } from 'postgres'
 import { signSession } from './auth'
 import { createBuy, searchSymbolsRoute, quoteSymbolRoute } from './buy-routes'
@@ -230,6 +230,17 @@ describe('POST buy', () => {
     expect(future.payload.error).toMatch(/future/i)
   })
 
+  it("takes today in the owner's time zone", async () => {
+    // Noon UTC on 15 June is already 16 June in Kiribati, UTC+14.
+    vi.stubEnv('TZ', 'Pacific/Kiritimati')
+    try {
+      expect((await run({ date: '2026-06-16' })).response.status).toBe(201)
+      expect((await run({ date: '2026-06-17' })).response.status).toBe(400)
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it.each([
     ['not json', 'nope'],
     ['an array', '[]'],
@@ -277,6 +288,15 @@ describe('POST buy', () => {
       expect(response.status).toBe(500)
       expect(await json(response)).toEqual({ error: 'The buy could not be saved' })
     })
+  })
+})
+
+describe('unexpected failures', () => {
+  it('answers 500 without the error text when saving fails for a reason other than the input', async () => {
+    const broken = { begin: async () => { throw new Error('connection terminated: internal detail') } } as unknown as Sql
+    const response = await createBuy(post(buy('00000000-0000-4000-8000-000000000000')), { secret, now, sql: broken, fetch: yahoo(chart('AAPL')).impl })
+    expect(response.status).toBe(500)
+    expect(await json(response)).toEqual({ error: 'The buy could not be saved' })
   })
 })
 

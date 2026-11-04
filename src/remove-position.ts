@@ -1,11 +1,10 @@
 import type { Sql } from 'postgres'
-import { authenticated, sameOrigin } from './web-auth'
+import { refuse, reply } from './route-guard'
+import type { Session } from './route-guard'
 
-const reply = (status: number, body: unknown) => Response.json(body, { status, headers: { 'cache-control': 'no-store' } })
-
-export async function removePosition(request: Request, { sql, secret, now }: { sql: Sql; secret: string; now: number }): Promise<Response> {
-  if (!authenticated(request.headers.get('cookie'), secret, now)) return reply(401, { error: 'Not signed in' })
-  if (!sameOrigin(request)) return reply(403, { error: 'Forbidden' })
+export async function removePosition(request: Request, { sql, ...session }: Session & { sql: Sql }): Promise<Response> {
+  const refused = refuse(request, session, { write: true })
+  if (refused) return refused
   let body: unknown
   try { body = await request.json() } catch { return reply(400, { error: 'Invalid removal request' }) }
   if (typeof body !== 'object' || body === null) return reply(400, { error: 'Invalid removal request' })

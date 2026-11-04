@@ -13,6 +13,7 @@ import { PreferenceSync } from '../src/preference-sync'
 import { parseTheme } from '../src/theme-choice'
 import { resolveViewPreferences } from '../src/view-preferences'
 import { authenticated } from '../src/web-auth'
+import { localDate } from '../src/local-date'
 
 export const dynamic = 'force-dynamic'
 const sql = openReadOnly(process.env.DATABASE_URL ?? '')
@@ -22,10 +23,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   if (!authenticated(jar.toString(), process.env.SESSION_SECRET ?? '', Date.now())) redirect('/login')
   const { period, hide, account, symbol } = await searchParams
   const view = resolveViewPreferences({ period, hide }, jar.toString())
-  const asOf = new Date().toISOString().slice(0, 10)
+  const asOf = localDate(Date.now())
   const names = await readSecurityNames(sql)
   const rates = await readRateHistory(sql, asOf)
-  const positions = combinePositions(await readPositionReport(sql, Object.fromEntries(rates.map((rate) => [rate.date, rate.eurPerUsd])))).map((position) => ({ ...position, name: names[position.symbol] ?? null }))
+  const positions = combinePositions(await readPositionReport(sql, rates)).map((position) => ({ ...position, name: names[position.symbol] ?? null }))
   // A position is one symbol, whichever accounts hold it. Links from before that also carry an account, which no longer matters.
   const scoped = account !== undefined || symbol !== undefined
   const position = scoped ? positions.find((holding) => holding.symbol === symbol) : undefined

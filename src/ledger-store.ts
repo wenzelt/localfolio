@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { Sql, TransactionSql } from 'postgres'
 import { parseGhostfolioJson } from './ghostfolio'
+import { InputError } from './input-error'
 
 export type Counts = { accounts: number; balances: number; tags: number; activities: number }
 
@@ -15,6 +16,11 @@ export type LedgerActivity = {
 }
 
 export type Trade = LedgerActivity & { type: 'BUY' | 'SELL'; symbol: string }
+
+// The order firstOversoldDay counts holdings in: by time, and on one timestamp buys before sales.
+// Sorting is stable, so entries that tie keep the ledger's insertion order.
+export const chronological = (left: { date: string; type: string }, right: { date: string; type: string }) =>
+  left.date.localeCompare(right.date) || Number(left.type === 'SELL') - Number(right.type === 'SELL')
 
 // Cash movements carry no instrument, so positions and valuations are built from buys and sells only.
 export const tradesOf = (activities: LedgerActivity[]): Trade[] =>
@@ -72,6 +78,15 @@ export async function ensureLedgerSchema(sql: Sql | TransactionSql) {
   await sql.unsafe(schema)
 }
 
+// The first day a sale leaves the account short of the symbol, counting holdings in `chronological` order, or null.
+export async function firstOversoldDay(sql: Sql | TransactionSql, accountId: string, symbol: string): Promise<string | null> {
+  const [short] = await sql`SELECT to_char(occurred_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day FROM (
+      SELECT occurred_at, sum(CASE type WHEN 'BUY' THEN quantity ELSE -quantity END) OVER (ORDER BY occurred_at, type = 'SELL', seq) AS held
+      FROM transactions WHERE account_id = ${accountId} AND symbol = ${symbol} AND type IN ('BUY', 'SELL')) timeline
+    WHERE held < 0 ORDER BY occurred_at LIMIT 1`
+  return short?.day ?? null
+}
+
 export async function importGhostfolioExport(sql: Sql, text: string): Promise<{ created: Counts; skipped: Counts }> {
   const document = parseGhostfolioJson(text)
   const created: Counts = { accounts: 0, balances: 0, tags: 0, activities: 0 }
@@ -106,6 +121,8 @@ export async function importGhostfolioExport(sql: Sql, text: string): Promise<{ 
       tagIds.set(tag.name, row.id)
     }
     const occurrences = new Map<string, number>()
+    const names = new Map(document.accounts.map((account) => [account.id, account.name]))
+    const sold = new Map<string, { accountId: string; name: string; symbol: string }>()
     for (const activity of document.activities) {
       const base = createHash('sha256').update(JSON.stringify([activity.accountId, activity.type, activity.symbol,
         activity.dataSource, activity.currency, activity.quantity, activity.unitPrice, activity.fee, activity.date,
@@ -117,16 +134,25 @@ export async function importGhostfolioExport(sql: Sql, text: string): Promise<{ 
         VALUES (${`${base}:${ordinal}`}, ${accountIds.get(activity.accountId)!}, ${activity.type}, ${activity.symbol},
           ${activity.dataSource}, ${activity.currency}, ${String(activity.quantity)}, ${String(activity.unitPrice)},
           ${String(activity.fee)}, ${activity.date}, ${activity.comment})
-        ON CONFLICT (external_key) DO NOTHING RETURNING id`
+        ON CONFLICT (external_key) DO NOTHING RETURNING id, account_id`
       if (!inserted) {
         skipped.activities++
         continue
       }
       created.activities++
+      if (activity.type === 'SELL') {
+        const name = names.get(activity.accountId) ?? activity.accountId
+        sold.set(JSON.stringify([inserted.account_id, activity.symbol]), { accountId: inserted.account_id, name, symbol: activity.symbol })
+      }
       for (const tag of activity.tags) {
         await tx`INSERT INTO transaction_tags (transaction_id, tag_id)
           VALUES (${inserted.id}, ${tagIds.get(tagNames.get(tag)!)!}) ON CONFLICT DO NOTHING`
       }
+    }
+    // The same rule manual entry applies; failing here rolls the whole import back.
+    for (const { accountId, name, symbol } of sold.values()) {
+      const day = await firstOversoldDay(tx, accountId, symbol)
+      if (day !== null) throw new InputError(`${name} sells more ${symbol} than it holds on ${day}`)
     }
   })
   return { created, skipped }

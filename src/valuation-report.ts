@@ -1,17 +1,18 @@
 import type { Sql } from 'postgres'
-import { readLedger } from './ledger-store'
+import { chronological, readLedger } from './ledger-store'
 import { positionActivitiesOf } from './positions'
 import { readCachedRates } from './fx-cache'
 import { readCachedQuotes } from './quote-cache'
 import { calculatePosition } from './ledger'
+import { InputError } from './input-error'
 
 export async function readValuationReport(sql: Sql, asOf: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf) || !Number.isFinite(Date.parse(asOf)) || new Date(asOf).toISOString().slice(0, 10) !== asOf) {
-    throw new Error('Invalid valuation date')
+    throw new InputError('Invalid valuation date')
   }
   const document = await readLedger(sql)
   const trades = positionActivitiesOf(document.activities)
-  if (trades.some((trade) => trade.date.slice(0, 10) > asOf)) throw new Error('Valuation date precedes imported activity')
+  if (trades.some((trade) => trade.date.slice(0, 10) > asOf)) throw new InputError('Valuation date precedes imported activity')
   const dates = [...new Set(trades.filter((trade) => trade.currency === 'USD').map((trade) => trade.date.slice(0, 10)))]
   const rates = await readCachedRates(sql, dates)
   const byDate = Object.fromEntries(rates.flatMap((rate) => rate.status === 'available' ? [[rate.date, rate.eurPerUsd]] : []))
@@ -20,7 +21,7 @@ export async function readValuationReport(sql: Sql, asOf: string) {
     const activities = trades.filter((trade) => trade.accountId === account.id)
     return [...new Set(activities.map((trade) => trade.symbol))].sort().map(async (symbol) => {
       const identity = { accountId: account.id, accountName: account.name, isExcluded: account.isExcluded, symbol }
-      const trades = activities.filter((trade) => trade.symbol === symbol).sort((a, b) => a.date.localeCompare(b.date))
+      const trades = activities.filter((trade) => trade.symbol === symbol).sort(chronological)
       if (trades.some((trade) => trade.currency === 'USD' && byDate[trade.date.slice(0, 10)] === undefined)) {
         return { ...identity, status: 'historical-fx-required' as const }
       }

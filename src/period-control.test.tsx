@@ -1,6 +1,7 @@
 import type { ChangeEvent, ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PERIODS } from './dashboard-view'
 import { PeriodControl } from './period-control'
 
 const navigation = vi.hoisted(() => ({ push: vi.fn(), pending: false, optimistic: vi.fn() }))
@@ -33,9 +34,9 @@ describe('automatic timeframe control', () => {
     expect(navigation.push).toHaveBeenCalledExactlyOnceWith('/positions/example?period=YTD&account=broker')
   })
 
-  it('renders all timeframe choices and only offers Apply as a no-script fallback', () => {
+  it('renders every timeframe choice in order and only offers Apply as a no-script fallback', () => {
     const html = renderToStaticMarkup(<PeriodControl period="YTD" />)
-    expect(html.match(/<option /g)).toHaveLength(9)
+    expect([...html.matchAll(/<option value="([^"]+)"/g)].map((match) => match[1])).toEqual(PERIODS.map(({ value }) => value))
     expect(html).toContain('value="YTD" selected=""')
     expect(html).toMatch(/<noscript><button type="submit">Apply<\/button><\/noscript>/)
     expect(html).toContain('name="account" value="broker"')

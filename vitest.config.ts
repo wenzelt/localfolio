@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
+    // Dates follow TZ, so tests start from UTC whatever the shell sets; a test that needs a zone stubs it.
+    env: { TZ: 'UTC' },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts', 'src/**/*.tsx'],

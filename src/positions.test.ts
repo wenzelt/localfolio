@@ -116,7 +116,7 @@ describe('position report from the ledger', () => {
         { ...buy, type: 'SELL', currency: 'EUR', quantity: 1, unitPrice: 15, fee: 1, date: '2026-01-03T10:00:00.000Z' },
       ]
     }, async (sql, [accountId]) => {
-      expect(await readPositionReport(sql, { '2026-01-02': '0.9' })).toEqual([
+      expect(await readPositionReport(sql, [{ date: '2026-01-02', eurPerUsd: '0.9' }])).toEqual([
         { accountId, accountName: 'Synthetic broker', isExcluded: false,
           symbol: 'EXAMPLE', status: 'calculated', currency: 'EUR', quantity: '1',
           invested: '9.9', averageCost: '9.9', realizedGain: '4.1' },
@@ -126,7 +126,7 @@ describe('position report from the ledger', () => {
 
   it('keeps the native USD cost basis of a USD-only holding next to its EUR cost basis', async () => {
     await inLedger(() => {}, async (sql) => {
-      expect(await readPositionReport(sql, { '2026-01-02': '0.9' })).toEqual([
+      expect(await readPositionReport(sql, [{ date: '2026-01-02', eurPerUsd: '0.9' }])).toEqual([
         expect.objectContaining({ symbol: 'EXAMPLE', currency: 'EUR', invested: '205.245', nativeInvested: '228.05' }),
       ])
     })
@@ -139,18 +139,28 @@ describe('position report from the ledger', () => {
         { ...buy, symbol: 'MIXED', currency: 'EUR', quantity: 1, unitPrice: 10, fee: 0 },
         { ...buy, symbol: 'MIXED', quantity: 1, unitPrice: 10, fee: 0 }]
     }, async (sql) => {
-      const report = await readPositionReport(sql, { '2026-01-02': '0.9' })
+      const report = await readPositionReport(sql, [{ date: '2026-01-02', eurPerUsd: '0.9' }])
       expect(report.map((position) => [position.symbol, 'nativeInvested' in position]))
         .toEqual([['EURO', false], ['EXAMPLE', true], ['MIXED', false]])
     })
   })
 
-  it('flags missing historical dates without blocking EUR-only positions', async () => {
+  it('converts a weekend trade at the last rate before it, as the chart and the valuation report do', async () => {
+    await inLedger((value) => {
+      value.activities[0].date = '2026-01-03T10:00:00.000Z'
+    }, async (sql) => {
+      expect(await readPositionReport(sql, [{ date: '2026-01-02', eurPerUsd: '0.9' }])).toEqual([
+        expect.objectContaining({ symbol: 'EXAMPLE', status: 'calculated', invested: '205.245', nativeInvested: '228.05' }),
+      ])
+    })
+  })
+
+  it('flags a trade whose only rates are later or more than seven days older, without blocking EUR-only positions', async () => {
     await inLedger((value) => {
       const buy = value.activities[0]
       value.activities.push({ ...buy, symbol: 'EURO', currency: 'EUR', quantity: 1, unitPrice: 10, fee: 0 })
     }, async (sql, [accountId]) => {
-      expect(await readPositionReport(sql, { '2026-01-01': '0.9' })).toEqual([
+      expect(await readPositionReport(sql, [{ date: '2025-12-25', eurPerUsd: '0.9' }, { date: '2026-01-05', eurPerUsd: '0.9' }])).toEqual([
         { accountId, accountName: 'Synthetic broker', isExcluded: false,
           symbol: 'EURO', status: 'calculated', currency: 'EUR', quantity: '1',
           invested: '10', averageCost: '10', realizedGain: '0' },
