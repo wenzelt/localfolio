@@ -5,6 +5,8 @@ import type { Sql } from 'postgres'
 import { readLedger } from './ledger-store'
 import { runLedgerCli } from './ledger-cli'
 import { addTransaction, createAccount } from './ledger-entry'
+import { readPositionReport } from './positions'
+import { readValuationReport } from './valuation-report'
 import { cacheTables, isolatedDatabase, withIsolatedDatabase } from './test-support/schema'
 
 const buy = { type: 'BUY', date: '2026-01-02T10:00:00.000Z', currency: 'USD', symbol: 'EXAMPLE', quantity: '2', unitPrice: '10', fee: '1' }
@@ -167,6 +169,20 @@ describe('selling', () => {
       await addTransaction(sql, sell(accountId, '2', '2026-03-01'))
       await expect(addTransaction(sql, sell(accountId, '1', '2026-02-01'))).rejects.toThrow(/Cannot sell more than is held/)
       expect((await readLedger(sql)).activities).toHaveLength(2)
+    })
+  })
+
+  it('values every history it accepts, including a buy entered after a sale on the same day', async () => {
+    await withIsolatedDatabase(async (sql) => {
+      const accountId = await accountIn(sql)
+      const euro = { ...buy, accountId, currency: 'EUR', quantity: '1', fee: '0' }
+      await addTransaction(sql, { ...euro, date: '2026-01-01' })
+      await addTransaction(sql, { ...euro, type: 'SELL', date: '2026-03-01' })
+      await addTransaction(sql, { ...euro, date: '2026-03-01' })
+      // The sale check counts the 1 March buy before the 1 March sale, so this backdated sale is covered.
+      await addTransaction(sql, { ...euro, type: 'SELL', date: '2026-02-01' })
+      expect(await readPositionReport(sql)).toMatchObject([{ status: 'calculated', quantity: '0', realizedGain: '0' }])
+      expect(await readValuationReport(sql, '2026-03-02')).toMatchObject([{ status: 'valued', quantity: '0' }])
     })
   })
 })
