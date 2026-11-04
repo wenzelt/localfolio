@@ -126,6 +126,27 @@ Upload the file, choose **Preview import**, review every row, then **Confirm imp
 
 This is the user-facing holdings importer, not the PostgreSQL backup/restore workflow. Ghostfolio JSON upload is not supported in the UI; use the existing CLI for that format.
 
+## Exporting transactions
+
+Choose **Export transactions** on the dashboard. The browser downloads `localfolio-transactions-YYYY-MM-DD.csv`, named after the day (UTC) of the download:
+
+```csv
+date,account,type,symbol,quantity,unit_price,fee,currency,comment,tags
+2026-01-02T00:00:00.000Z,Broker,BUY,VWCE.DE,12.5,100.25,1.5,EUR,first lot,core
+```
+
+- One row per transaction of every type (`BUY`, `SELL`, `DIVIDEND`, `DEPOSIT`, `WITHDRAWAL`, `FEE`), oldest first. Accounts you excluded from the dashboard totals are included, because the file is a record of the ledger.
+- `date` is the stored UTC timestamp. `quantity`, `unit_price` and `fee` are written exactly as stored, with no rounding. `currency` is the transaction currency, which can differ from the account's.
+- A cash movement or dividend entered by hand is stored with `quantity` 1 and the amount in `unit_price`. Activities imported from Ghostfolio keep the quantity and price from that export. `symbol` is empty when the transaction has none, as with a deposit.
+- `tags` holds a row's tags joined with `;`.
+- The file is UTF-8 with a byte order mark and CRLF line endings, so Excel shows accents and euro signs correctly. Fields containing commas, quotes or line breaks are quoted.
+- A spreadsheet treats text starting with `=`, `+`, `-` or `@` (or a tab or carriage return) as a formula. Account names, symbols, comments and tags that start that way are written with a leading apostrophe, so a comment such as `=HYPERLINK(...)` cannot run when you open the file.
+- An empty ledger gives a file with only the header row.
+
+The authenticated `GET /api/transactions/export` endpoint needs the same sign-in cookie as the rest of the app and reads from the database without changing anything. A request without a valid session gets a 401 and no data.
+
+The file is not a backup, and **Import positions** does not accept it, because the columns differ. To restore a whole portfolio use the PostgreSQL backup in the README.
+
 ## Outstanding work
 
 A web form for types other than BUY remains unimplemented; the dashboard pages connect read-only, and only the buy, CSV import and position-removal endpoints write. A dividend on a symbol is counted as realised income in the position and valuation reports; it does not change quantity, cost basis, portfolio value or the performance chart. Deposits, withdrawals and fees can be stored but are not included in positions, valuation or performance, and cash stays a fixed EUR 0.

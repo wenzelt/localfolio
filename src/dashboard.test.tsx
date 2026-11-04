@@ -124,6 +124,12 @@ describe('dashboard rendering', () => {
     expect(renderToStaticMarkup(<Dashboard report={null} />)).toMatch(/<a[^>]*href="\/accounts"[^>]*>Manage accounts<\/a>/)
   })
 
+  it('offers an Export transactions button that downloads from the export endpoint, also when nothing is imported', () => {
+    for (const html of [renderToStaticMarkup(<Dashboard report={report} />), renderToStaticMarkup(<Dashboard report={null} />)]) {
+      expect(html).toMatch(/<a[^>]*href="\/api\/transactions\/export"[^>]*>Export transactions<\/a>/)
+    }
+  })
+
   it('names the next step when nothing is imported', () => {
     const html = renderToStaticMarkup(<Dashboard report={null} />)
     expect(html).toContain('npm run import:ghostfolio')

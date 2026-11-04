@@ -78,6 +78,8 @@ Run the remaining commands from this folder. If you downloaded a ZIP instead, ex
 
    Current holdings can be loaded from a spreadsheet with **Import positions** on the dashboard (`/import`). Download the CSV template there; its header is `account,symbol,quantity,average_price,currency,date`. You get a preview before anything is saved, and repeat uploads skip identical rows. Rules: [docs/local-import.md](docs/local-import.md#bulk-import-through-the-ui).
 
+   **Export transactions** on the dashboard downloads every transaction as one CSV file, oldest first, with the header `date,account,type,symbol,quantity,unit_price,fee,currency,comment,tags`. Use it to check your records in a spreadsheet. It is a readable copy, not a backup and not an import file; for a restorable copy see Backup and restore below. Columns and details: [docs/local-import.md](docs/local-import.md#exporting-transactions).
+
 5. Fetch prices and rates with the worker ([docs/yfinance-worker.md](docs/yfinance-worker.md)). Until this has run once, the dashboard has holdings but no prices. The one-off refresh derives everything it needs from your ledger:
 
    ```sh
