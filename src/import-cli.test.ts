@@ -49,6 +49,16 @@ describe('runImportCli', () => {
     })
   })
 
+  it('rejects an export that sells more than it holds and saves nothing', async () => {
+    await withIsolatedDatabase(async (sql) => {
+      const document = JSON.parse(exportFor('oversold'))
+      document.activities.push({ ...document.activities[0], type: 'SELL', quantity: 3, date: '1980-01-05T10:00:00.000Z' })
+      await expect(runImportCli(sql, ['export.json'], read(JSON.stringify(document))))
+        .rejects.toThrow('Import rejected: Synthetic broker sells more SYNTHETIC-oversold than it holds on 1980-01-05')
+      expect(await sql`SELECT to_regclass('accounts') AS name`).toMatchObject([{ name: null }])
+    })
+  })
+
   it('rejects a malformed export with a clear error before touching the database', async () => {
     const untouched = (() => { throw new Error('database used') }) as unknown as Sql
     await expect(runImportCli(untouched, ['export.json'], read('{"accounts": "nope"}'))).rejects.toThrow(/^Import rejected: /)
