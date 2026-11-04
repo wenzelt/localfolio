@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { usdRateDatesOf } from './fx-cache'
+import { usdRateDatesOf } from './positions'
 import type { LedgerActivity } from './ledger-store'
 
 function activity(overrides: Partial<LedgerActivity>): LedgerActivity {

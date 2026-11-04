@@ -1,7 +1,6 @@
 import type { Sql, TransactionSql } from 'postgres'
 import { readLedger } from './ledger-store'
-import type { LedgerActivity } from './ledger-store'
-import { positionActivitiesOf, positionReport } from './positions'
+import { positionReport, usdRateDatesOf } from './positions'
 
 type CachedRate = {
   date: string
@@ -37,11 +36,6 @@ export async function readRateHistory(sql: Sql | TransactionSql, asOf: string): 
     FROM fx_observations WHERE observed_on <= ${asOf}::date ORDER BY observed_on
   `
 }
-
-// The position report converts every USD trade and dividend, so each of their dates needs a rate.
-export const usdRateDatesOf = (activities: LedgerActivity[]) => [...new Set(positionActivitiesOf(activities)
-  .filter((activity) => activity.currency === 'USD')
-  .map((activity) => activity.date.slice(0, 10)))]
 
 export async function readCachedPositionReport(sql: Sql) {
   const ledger = await readLedger(sql)

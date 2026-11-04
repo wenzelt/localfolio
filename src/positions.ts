@@ -4,6 +4,8 @@ import type { Fraction } from './fraction'
 import { calculatePosition } from './ledger'
 import { chronological, readLedger } from './ledger-store'
 import type { LedgerAccount, LedgerActivity } from './ledger-store'
+import { latest } from './performance'
+import type { RateRow } from './performance'
 
 type PositionActivity = LedgerActivity & { type: 'BUY' | 'SELL' | 'DIVIDEND'; symbol: string }
 
@@ -11,6 +13,11 @@ type PositionActivity = LedgerActivity & { type: 'BUY' | 'SELL' | 'DIVIDEND'; sy
 export const positionActivitiesOf = (activities: LedgerActivity[]): PositionActivity[] =>
   activities.filter((activity): activity is PositionActivity =>
     (activity.type === 'BUY' || activity.type === 'SELL' || activity.type === 'DIVIDEND') && activity.symbol !== null)
+
+// The position report converts every USD trade and dividend, so each of their dates needs a rate.
+export const usdRateDatesOf = (activities: LedgerActivity[]) => [...new Set(positionActivitiesOf(activities)
+  .filter((activity) => activity.currency === 'USD')
+  .map((activity) => activity.date.slice(0, 10)))]
 
 export function positionReport(
   ledger: { accounts: LedgerAccount[]; activities: LedgerActivity[] },
@@ -46,8 +53,17 @@ export function positionReport(
   })
 }
 
-export async function readPositionReport(sql: Sql, eurPerUsdByDate?: Record<string, string>) {
-  return positionReport(await readLedger(sql), eurPerUsdByDate)
+// With a rate history, every USD trade is converted at the latest rate on or before its day, at most seven days old,
+// the same rule the chart and the valuation report use. Without one, positions stay in their trade currency.
+export async function readPositionReport(sql: Sql, rates?: RateRow[]) {
+  const ledger = await readLedger(sql)
+  if (rates === undefined) return positionReport(ledger)
+  const byDate: Record<string, string> = Object.create(null)
+  for (const date of usdRateDatesOf(ledger.activities)) {
+    const rate = latest(rates, date)
+    if (rate !== undefined) byDate[date] = rate.eurPerUsd
+  }
+  return positionReport(ledger, byDate)
 }
 
 const zero = decimalToFraction('0')

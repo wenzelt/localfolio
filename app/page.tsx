@@ -25,7 +25,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ p
   const asOf = new Date().toISOString().slice(0, 10)
   const names = await readSecurityNames(sql)
   const rates = await readRateHistory(sql, asOf)
-  const positions = combinePositions(await readPositionReport(sql, Object.fromEntries(rates.map((rate) => [rate.date, rate.eurPerUsd])))).map((position) => ({ ...position, name: names[position.symbol] ?? null }))
+  const positions = combinePositions(await readPositionReport(sql, rates)).map((position) => ({ ...position, name: names[position.symbol] ?? null }))
   // A position is one symbol, whichever accounts hold it. Links from before that also carry an account, which no longer matters.
   const scoped = account !== undefined || symbol !== undefined
   const position = scoped ? positions.find((holding) => holding.symbol === symbol) : undefined
