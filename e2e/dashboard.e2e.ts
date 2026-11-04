@@ -47,7 +47,8 @@ test.describe('sign in', () => {
     await expect(page).toHaveURL(/\/login/)
     await page.getByLabel('Password').fill('wrong')
     await page.getByRole('button', { name: 'Sign in' }).click()
-    await expect(page.getByRole('alert')).toHaveText('Incorrect password')
+    // A production build adds Next's empty route announcer, which is an alert too, so the message is found by its text.
+    await expect(page.getByRole('alert').filter({ hasText: 'Incorrect password' })).toBeVisible()
   })
 })
 
