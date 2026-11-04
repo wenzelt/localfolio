@@ -91,6 +91,24 @@ class PlanHistoryTests(unittest.TestCase):
         self.assertEqual(plan['historySymbols'], ['CLOSED', 'ZZZ'])
         self.assertEqual(plan['symbols'], ['ZZZ'])
 
+    def test_a_closed_position_whose_stored_history_covers_its_trades_is_not_fetched(self):
+        # The sale was on a Saturday; the Friday close before it is the one it is valued at.
+        activities = document(trade('BUY', 'GONE', 2, day='2025-02-03'), trade('SELL', 'GONE', 2, day='2025-05-03'),
+                              trade('BUY', 'HELD', 1, day='2025-02-03'))
+        stored = {'prices': {'GONE': (date(2025, 1, 27), date(2025, 5, 2)), 'HELD': (date(2025, 1, 27), date(2026, 3, 19))}, 'fx': None}
+        plan = plan_refresh(activities, TODAY, stored)
+        self.assertEqual(plan['historyStarts'], {'HELD': date(2026, 3, 12)})
+        self.assertEqual(plan['historySymbols'], ['GONE', 'HELD'])
+
+    def test_a_closed_position_missing_part_of_its_history_is_still_fetched(self):
+        activities = document(trade('BUY', 'GONE', 2, day='2025-02-03'), trade('SELL', 'GONE', 2, day='2025-05-03'))
+        for stored_range, start in [(None, date(2025, 1, 27)),
+                                    ((date(2025, 1, 27), date(2025, 3, 1)), date(2025, 2, 22)),
+                                    ((date(2025, 3, 3), date(2025, 6, 2)), date(2025, 1, 27))]:
+            with self.subTest(stored=stored_range):
+                stored = {'prices': {} if stored_range is None else {'GONE': stored_range}, 'fx': None}
+                self.assertEqual(plan_refresh(activities, TODAY, stored)['historyStarts'], {'GONE': start})
+
     def test_empty_import_has_no_history(self):
         plan = plan_refresh(document(), TODAY)
         self.assertEqual((plan['historyStart'], plan['historySymbols'], plan['historyStarts']), (None, [], {}))
@@ -226,6 +244,13 @@ class RefreshImportTests(unittest.TestCase):
         self.assertEqual(prices.call_count, 2)
         self.assertEqual(summary, 'Processed 7 FX observations, 2 security quotes and 4 price history rows; '
                                   '1 failed: AAA history (no data)')
+
+    def test_dry_run_counts_only_the_symbols_it_would_fetch(self):
+        self.activities = document(trade('BUY', 'GONE', 2, day='2025-02-03'), trade('SELL', 'GONE', 2, day='2025-05-03'))
+        self.stored = {'prices': {'GONE': (date(2025, 1, 27), date(2025, 5, 2))}, 'fx': None}
+        summary = self.refresh(dry_run=True)
+        self.assertEqual(summary, 'Dry run: FX 2026-03-06..2026-03-20, 0 quote symbols, '
+                                  'price history none for 0 symbols; nothing fetched or written')
 
     def test_price_history_covers_closed_positions_but_quotes_do_not(self):
         self.activities = document(
