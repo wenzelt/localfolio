@@ -2,7 +2,7 @@ import type { Sql } from 'postgres'
 import { add, decimalToFraction, divide, formatFraction, subtract } from './fraction'
 import type { Fraction } from './fraction'
 import { calculatePosition } from './ledger'
-import { readLedger } from './ledger-store'
+import { chronological, readLedger } from './ledger-store'
 import type { LedgerAccount, LedgerActivity } from './ledger-store'
 
 type PositionActivity = LedgerActivity & { type: 'BUY' | 'SELL' | 'DIVIDEND'; symbol: string }
@@ -21,8 +21,7 @@ export function positionReport(
     const activities = allTrades.filter((activity) => activity.accountId === account.id)
     const symbols = [...new Set(activities.map((activity) => activity.symbol))].sort()
     return symbols.map((symbol) => {
-      const trades = activities.filter((activity) => activity.symbol === symbol)
-        .sort((left, right) => left.date.localeCompare(right.date))
+      const trades = activities.filter((activity) => activity.symbol === symbol).sort(chronological)
       const identity = { accountId: account.id, accountName: account.name,
         isExcluded: account.isExcluded, symbol }
       const needsFx = eurPerUsdByDate === undefined

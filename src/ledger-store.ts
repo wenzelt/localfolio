@@ -16,6 +16,11 @@ export type LedgerActivity = {
 
 export type Trade = LedgerActivity & { type: 'BUY' | 'SELL'; symbol: string }
 
+// The order the sale check in addTransaction counts holdings in: by time, and on one timestamp buys before sales.
+// Sorting is stable, so entries that tie keep the ledger's insertion order.
+export const chronological = (left: { date: string; type: string }, right: { date: string; type: string }) =>
+  left.date.localeCompare(right.date) || Number(left.type === 'SELL') - Number(right.type === 'SELL')
+
 // Cash movements carry no instrument, so positions and valuations are built from buys and sells only.
 export const tradesOf = (activities: LedgerActivity[]): Trade[] =>
   activities.filter((activity): activity is Trade => (activity.type === 'BUY' || activity.type === 'SELL') && activity.symbol !== null)
