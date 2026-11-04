@@ -11,8 +11,9 @@ from worker.fx import refresh_rates
 from worker.prices import refresh_price_history
 from worker.quotes import refresh_quotes
 
-# A quote may be 7 days old and its FX rate up to 7 days older than the quote.
-QUOTE_FX_WINDOW_DAYS = 14
+# Closes and rates are read up to this many days back, so a trade on a weekend or a holiday needs the week before it.
+# A quote may also be this old, so its rate can lie up to twice as far back.
+LOOKBACK_DAYS = 7
 
 # The intraday refresh only re-fetches this many days; today's bar is the one that moves.
 INTRADAY_WINDOW_DAYS = 7
@@ -30,18 +31,44 @@ def load_activities(connection):
             for account, kind, symbol, currency, quantity, day in rows]
 
 
-def plan_refresh(activities, today):
+def load_stored_ranges(connection):
+    """The first and last stored day of each symbol's closes and of the USD/EUR rates."""
+    prices, fx = {}, None
+    if connection.execute("SELECT to_regclass('security_prices')").fetchone()[0] is not None:
+        prices = {symbol: (first, last) for symbol, first, last in connection.execute(
+            'SELECT symbol, min(observed_on), max(observed_on) FROM security_prices GROUP BY symbol').fetchall()}
+    if connection.execute("SELECT to_regclass('fx_observations')").fetchone()[0] is not None:
+        first, last = connection.execute('SELECT min(observed_on), max(observed_on) FROM fx_observations').fetchone()
+        fx = None if first is None else (first, last)
+    return {'prices': prices, 'fx': fx}
+
+
+def refresh_start(first_needed, stored):
+    """Where to start fetching. Stored rows do not change, so only the last week of them is fetched again, which picks up
+    a late correction and today's bar. Without stored rows, or when a trade predates them, fetch from before that day."""
+    lookback = timedelta(days=LOOKBACK_DAYS)
+    if stored is None or stored[0] > first_needed:
+        return first_needed - lookback
+    return stored[1] - lookback
+
+
+def plan_refresh(activities, today, stored=None):
+    stored = stored or {'prices': {}, 'fx': None}
     usd_dates = [date.fromisoformat(a['date'][:10]) for a in activities if a['currency'] == 'USD']
     quantities = defaultdict(Decimal)
-    trade_dates = [date.fromisoformat(a['date'][:10]) for a in activities]
+    first_trades = {}
     for a in activities:
         quantities[(a['accountId'], a['symbol'])] += Decimal(str(a['quantity'])) * (1 if a['type'] == 'BUY' else -1)
+        day = date.fromisoformat(a['date'][:10])
+        first_trades[a['symbol']] = min(first_trades.get(a['symbol'], day), day)
+    history_starts = {symbol: refresh_start(first, stored['prices'].get(symbol)) for symbol, first in sorted(first_trades.items())}
     return {
-        'fxStart': min(usd_dates + [today - timedelta(days=QUOTE_FX_WINDOW_DAYS)]),
+        'fxStart': refresh_start(min(usd_dates + [today - timedelta(days=LOOKBACK_DAYS)]), stored['fx']),
         'fxEnd': today,
         'symbols': sorted({symbol for (_, symbol), quantity in quantities.items() if quantity > 0}),
-        'historyStart': min(trade_dates, default=None),
-        'historySymbols': sorted({symbol for _, symbol in quantities}),
+        'historyStart': min(history_starts.values(), default=None),
+        'historyStarts': history_starts,
+        'historySymbols': list(history_starts),
     }
 
 
@@ -51,7 +78,7 @@ def failure_reason(error):
 
 def refresh_import(connection, today, dry_run=False, rates=refresh_rates, quotes=refresh_quotes,
                    prices=refresh_price_history):
-    plan = plan_refresh(load_activities(connection), today)
+    plan = plan_refresh(load_activities(connection), today, load_stored_ranges(connection))
     start, end = plan['fxStart'].isoformat(), plan['fxEnd'].isoformat()
     history_start = plan['historyStart'].isoformat() if plan['historyStart'] else None
     if dry_run:
@@ -68,7 +95,7 @@ def refresh_import(connection, today, dry_run=False, rates=refresh_rates, quotes
             failures.append(f'{symbol} ({failure_reason(error)})')
     for symbol in plan['historySymbols']:
         try:
-            price_count += prices(connection, [symbol], history_start, end)
+            price_count += prices(connection, [symbol], plan['historyStarts'][symbol].isoformat(), end)
         except Exception as error:
             failures.append(f'{symbol} history ({failure_reason(error)})')
     summary = (f'Processed {fx_count} FX observations, {quote_count} security quotes '
