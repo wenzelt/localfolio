@@ -86,6 +86,25 @@ describe('MCP portfolio tools', () => {
     })
   })
 
+  it('names why a write was refused rather than saying it may have committed', async () => {
+    await withIsolatedDatabase(async (sql) => {
+      const { id: accountId } = await createAccount(sql, { name: 'Synthetic broker', currency: 'EUR' })
+      await connected(sql, true, async (client) => {
+        const refusal = async (args: Record<string, unknown>) => {
+          const response = await client.callTool({ name: 'add_transaction', arguments: { accountId, ...args } })
+          expect(response.isError).toBe(true)
+          return (response.content as { text: string }[])[0].text
+        }
+        data(await client.callTool({ name: 'add_transaction', arguments: { accountId, ...buy } }))
+        expect(await refusal({ ...buy, accountId: '00000000-0000-4000-8000-000000000000' })).toBe('Account not found: 00000000-0000-4000-8000-000000000000')
+        expect(await refusal({ ...buy, type: 'SELL', quantity: '3' })).toBe('Cannot sell more than is held')
+        expect(await refusal(buy)).toBe('Duplicate transaction: an identical one is already saved')
+        expect(await refusal({ ...buy, date: '1980-02-30' })).toBe('Invalid date: 1980-02-30')
+        expect((await readLedger(sql)).activities).toHaveLength(1)
+      })
+    })
+  })
+
   it('preserves missing and stale quote statuses and the valuation date restriction', async () => {
     await withIsolatedDatabase(async (sql) => {
       const { id: accountId } = await createAccount(sql, { name: 'Synthetic broker', currency: 'EUR' })

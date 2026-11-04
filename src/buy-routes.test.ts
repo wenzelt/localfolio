@@ -280,6 +280,15 @@ describe('POST buy', () => {
   })
 })
 
+describe('unexpected failures', () => {
+  it('answers 500 without the error text when saving fails for a reason other than the input', async () => {
+    const broken = { begin: async () => { throw new Error('connection terminated: internal detail') } } as unknown as Sql
+    const response = await createBuy(post(buy('00000000-0000-4000-8000-000000000000')), { secret, now, sql: broken, fetch: yahoo(chart('AAPL')).impl })
+    expect(response.status).toBe(500)
+    expect(await json(response)).toEqual({ error: 'The buy could not be saved' })
+  })
+})
+
 describe('DuplicateTransactionError', () => {
   it('is what addTransaction throws for a repeat', async () => {
     await withIsolatedDatabase(async (sql) => {

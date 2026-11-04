@@ -256,7 +256,8 @@ describe('duplicate guard', () => {
     await withIsolatedDatabase(async (sql) => {
       const accountId = await accountIn(sql)
       await addTransaction(sql, { accountId, ...entry })
-      await expect(addTransaction(sql, { accountId, ...entry })).rejects.toThrow(/Duplicate transaction.*--force/)
+      // The command-line flag is only named by ledger:add; the web form and MCP have their own way to confirm.
+      await expect(addTransaction(sql, { accountId, ...entry })).rejects.toThrow(/^Duplicate transaction: an identical one is already saved$/)
       expect((await readLedger(sql)).activities).toHaveLength(1)
     })
   })
@@ -317,7 +318,7 @@ describe('duplicate guard', () => {
       const args = ['transaction', '--account', accountId, '--type', 'BUY', '--date', '2026-01-02', '--currency', 'EUR',
         '--symbol', 'EXAMPLE', '--quantity', '2', '--unit-price', '10']
       await runLedgerCli(sql, args)
-      await expect(runLedgerCli(sql, args)).rejects.toThrow(/Duplicate transaction/)
+      await expect(runLedgerCli(sql, args)).rejects.toThrow(/Duplicate transaction.*pass --force to save it again/)
       await runLedgerCli(sql, [...args, '--force'])
       expect((await readLedger(sql)).activities).toHaveLength(2)
     })
