@@ -4,11 +4,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InteractiveChart } from './chart'
 import { chartGeometry, chartPoints, nearestPoint } from './dashboard-view'
 
-const selection = vi.hoisted(() => ({ index: null as number | null, set: vi.fn() }))
+type Selection = { hover: number | null; pinned: number | null }
+const selection = vi.hoisted(() => ({ state: { hover: null, pinned: null } as Selection, set: vi.fn() }))
 vi.mock('react', async (original) => ({
   ...await original<typeof import('react')>(),
-  useState: () => [selection.index, selection.set],
+  useState: () => [selection.state, selection.set],
 }))
+// The chart hands updaters to its setter; apply the latest one to the state it would have seen.
+const chosen = () => {
+  const update = selection.set.mock.lastCall?.[0] as (state: Selection) => Selection
+  selection.state = update(selection.state)
+  return selection.state
+}
 
 const series = [
   { date: '2025-01-01', value: '1000', changePercent: '0' },
@@ -47,7 +54,7 @@ describe('chart points', () => {
 
 describe('interactive chart', () => {
   beforeEach(() => {
-    selection.index = null
+    selection.state = { hover: null, pinned: null }
     selection.set.mockReset()
   })
 
@@ -61,7 +68,7 @@ describe('interactive chart', () => {
   })
 
   it('describes the chosen observation and not the interpolated gap', () => {
-    selection.index = 1
+    selection.state = { hover: null, pinned: 1 }
     const html = renderToStaticMarkup(<InteractiveChart series={series} tone="positive" />)
     expect(html).toContain('2025-01-02')
     expect(html).toContain('€1,100.00')
@@ -78,26 +85,62 @@ describe('interactive chart', () => {
     expect(html).toContain('+25.05%')
   })
 
-  it('chooses the nearest observation under the pointer and clears on leave', () => {
+  const box = { getBoundingClientRect: () => ({ left: 0, width: 1000 }), setPointerCapture: vi.fn() }
+  const parts = () => {
     const chart = InteractiveChart({ series, tone: 'positive' }) as Element
     const svg = find(chart, (element) => element.type === 'svg') as Element
-    const move = svg.props.onPointerMove as Handler
-    move({ clientX: 500, currentTarget: { getBoundingClientRect: () => ({ left: 0, width: 1000 }) } })
-    expect(selection.set).toHaveBeenLastCalledWith(1)
-    ;(svg.props.onPointerLeave as Handler)({})
-    expect(selection.set).toHaveBeenLastCalledWith(null)
+    const handler = (name: string) => svg.props[name] as Handler
+    return { chart, handler }
+  }
+
+  it('previews the observation under a hovering mouse and falls back on leave', () => {
+    const { handler } = parts()
+    handler('onPointerMove')({ clientX: 500, pointerType: 'mouse', buttons: 0, currentTarget: box })
+    expect(chosen()).toEqual({ hover: 1, pinned: null })
+    handler('onPointerLeave')({})
+    expect(chosen()).toEqual({ hover: null, pinned: null })
   })
 
-  it('supports touch and keyboard selection and dismissal', () => {
-    const chart = InteractiveChart({ series, tone: 'positive' }) as Element
-    const svg = find(chart, (element) => element.type === 'svg') as Element
-    ;(svg.props.onPointerDown as Handler)({ clientX: 1000, currentTarget: { getBoundingClientRect: () => ({ left: 0, width: 1000 }) } })
-    expect(selection.set).toHaveBeenLastCalledWith(2)
+  it('keeps a touched date after the finger lifts and follows a drag', () => {
+    const { handler } = parts()
+    handler('onPointerDown')({ clientX: 0, pointerId: 7, pointerType: 'touch', buttons: 1, currentTarget: box })
+    expect(box.setPointerCapture).toHaveBeenCalledWith(7)
+    expect(chosen()).toEqual({ hover: null, pinned: 0 })
+    handler('onPointerMove')({ clientX: 480, pointerType: 'touch', buttons: 1, currentTarget: box })
+    expect(chosen()).toEqual({ hover: null, pinned: 1 })
+    handler('onPointerLeave')({})
+    expect(chosen()).toEqual({ hover: null, pinned: 1 })
+  })
+
+  it('returns to a pinned date when a hover preview ends', () => {
+    selection.state = { hover: null, pinned: 0 }
+    const { handler } = parts()
+    handler('onPointerMove')({ clientX: 1000, pointerType: 'mouse', buttons: 0, currentTarget: box })
+    expect(chosen()).toEqual({ hover: 2, pinned: 0 })
+    handler('onPointerLeave')({})
+    expect(chosen()).toEqual({ hover: null, pinned: 0 })
+  })
+
+  it('draws a guide at a chosen date and offers a way back to the latest', () => {
+    expect(renderToStaticMarkup(<InteractiveChart series={series} tone="positive" />)).not.toContain('class="guide"')
+    expect(renderToStaticMarkup(<InteractiveChart series={series} tone="positive" />)).toMatch(/<button[^>]*disabled=""[^>]*>Latest</)
+    selection.state = { hover: null, pinned: 1 }
+    const html = renderToStaticMarkup(<InteractiveChart series={series} tone="positive" />)
+    expect(html).toContain('class="guide"')
+    expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>Latest</)
+    const { chart } = parts()
+    const latest = find(chart, (element) => element.type === 'button') as Element
+    ;(latest.props.onClick as Handler)({})
+    expect(chosen()).toEqual({ hover: null, pinned: null })
+  })
+
+  it('selects with the keyboard and clears with Escape', () => {
+    const { chart } = parts()
     const range = find(chart, (element) => element.type === 'input') as Element
     ;(range.props.onChange as Handler)({ target: { value: '1' } })
-    expect(selection.set).toHaveBeenLastCalledWith(1)
+    expect(chosen()).toEqual({ hover: null, pinned: 1 })
     ;(range.props.onKeyDown as Handler)({ key: 'Escape' })
-    expect(selection.set).toHaveBeenLastCalledWith(null)
+    expect(chosen()).toEqual({ hover: null, pinned: null })
   })
 
   describe('unit price for a single holding', () => {
@@ -114,7 +157,7 @@ describe('interactive chart', () => {
     })
 
     it('names the close date when the chosen day has no observation of its own', () => {
-      selection.index = 1
+      selection.state = { hover: null, pinned: 1 }
       const html = renderToStaticMarkup(<InteractiveChart series={priced} tone="positive" />)
       expect(html).toContain('Price 10.00 EUR (close 2025-01-03)')
     })

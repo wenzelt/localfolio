@@ -67,14 +67,18 @@ header { position: sticky; top: 0; z-index: 10; display: flex; justify-content: 
 .negative { color: var(--negative); }
 .neutral, .muted, .dates, .footnote { color: var(--muted); }
 
-.chart { width: 100%; display: block; margin: 28px 0 4px; overflow: visible; color: var(--chart); touch-action: pan-y;  transition: opacity 150ms ease-out; }
+.chart { width: 100%; display: block; margin: 28px 0 4px; overflow: visible; color: var(--chart); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; transition: opacity 150ms ease-out; }
 .chart .area { fill: currentColor; opacity: .09; stroke: none; }
 .chart .grid { stroke: var(--rule); stroke-width: 1px; vector-effect: non-scaling-stroke; }
 .chart .baseline { stroke: var(--control); stroke-width: 1px; vector-effect: non-scaling-stroke; }
 .chart .chart-reveal path:last-child { stroke-width: 2px; stroke-linejoin: round; }
 .chart .axis { fill: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
 .chart .marker { r: 6px; fill: var(--surface); stroke: currentColor; stroke-width: 2px; vector-effect: non-scaling-stroke; }
-.readout { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 4px 0 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chart .guide { stroke: var(--control); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.readout-bar { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 4px 0 0; }
+.readout-bar .latest { flex: none; }
+.readout-bar .latest:disabled { visibility: hidden; }
+.readout { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; }
 .readout span:nth-of-type(1) { color: var(--text); font-weight: 600; }
 .readout .positive { color: var(--positive); }
 .readout .negative { color: var(--negative); }
@@ -148,6 +152,8 @@ main:has(.period[aria-busy="true"]) .chart { opacity: .45; }
   .summary .stats > div:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .chart .axis { font-size: 34px; }
   .chart .marker { r: 15px; }
+  /* Room for a wrapped readout, so scrubbing between dates never pushes the slider up and down. */
+  .readout { min-height: calc(2lh + 4px); align-content: flex-start; }
 }
 /* Three header controls need the room: the bar keeps the mark, and the picker shrinks to its icon. */
 @media (max-width: 480px) {
