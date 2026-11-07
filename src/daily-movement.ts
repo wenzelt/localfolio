@@ -69,11 +69,14 @@ export function dailyMovement(
     const previous = bars[bars.indexOf(newest) - 1]
     const reference = previous && gapInDays(previous.observedOn, newest.observedOn) <= maxGapDays && previous.currency === newest.currency ? previous : undefined
     const base = reference && decimalToFraction(reference.close)
+    // The previous close is valued at the rate of its own day, as the chart values that day.
+    const baseRate = reference && (reference.currency === 'EUR' ? decimalToFraction('1') : latest(rates, reference.observedOn)?.eurPerUsd)
     return [{
       ...identity,
       value: rate === undefined ? null : formatFraction(multiply(multiply(quantity, close), rate)),
-      // The session's gain in EUR: held quantity times the price move, at the same rate as the value.
-      change: rate === undefined || base === undefined || base.numerator === 0n ? null : formatFraction(multiply(multiply(quantity, subtract(close, base)), rate)),
+      // The session's gain in EUR, including what the exchange rate did to the previous close, so it matches the chart.
+      change: rate === undefined || base === undefined || baseRate === undefined || base.numerator === 0n ? null
+        : formatFraction(multiply(quantity, subtract(multiply(close, rate), multiply(base, baseRate)))),
       changePercent: base === undefined || base.numerator === 0n ? null : formatFraction(multiply(divide(subtract(close, base), base), hundred)),
       observedOn: newest.observedOn,
       previousOn: reference?.observedOn ?? null,
