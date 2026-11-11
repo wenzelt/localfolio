@@ -91,8 +91,9 @@ describe('daily movement', () => {
   it('converts a USD position at the latest rate at or before the cutoff', () => {
     const prices = [bar('U', '1980-01-04', '10', 'USD'), bar('U', '1980-01-07', '20', 'USD')]
     const rates = [{ date: '1980-01-02', eurPerUsd: '0.5' }, { date: '1980-01-05', eurPerUsd: '0.9' }, { date: '1980-01-08', eurPerUsd: '2' }]
-    // The percent change stays in the quote currency, so FX does not leak into it.
-    expect(run([buy('a1', 'U', '1')], prices, rates)[0]).toMatchObject({ value: '18', change: '9', changePercent: '100' })
+    // The percent change stays in the quote currency, so FX does not leak into it. The EUR change values
+    // the previous close at its own day's rate (10 x 0.5) and today's close at today's (20 x 0.9), as the chart does.
+    expect(run([buy('a1', 'U', '1')], prices, rates)[0]).toMatchObject({ value: '18', change: '13', changePercent: '100' })
   })
 
   it('leaves the value empty but keeps the change when the FX rate is missing or stale', () => {
