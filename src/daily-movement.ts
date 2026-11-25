@@ -2,7 +2,7 @@ import type { Sql } from 'postgres'
 import { add, decimalToFraction, divide, formatFraction, multiply, subtract } from './fraction'
 import type { Fraction } from './fraction'
 import { readRateHistory } from './fx-cache'
-import { readLedger, tradesOf } from './ledger-store'
+import { readAdjustedLedger, tradesOf } from './ledger-store'
 import { latest } from './performance'
 import type { RateRow } from './performance'
 import { readPriceHistory } from './price-history'
@@ -85,7 +85,7 @@ export function dailyMovement(
 }
 
 export async function readDailyMovement(sql: Sql, asOf: string): Promise<DailyMovementItem[]> {
-  const ledger = await readLedger(sql)
+  const ledger = await readAdjustedLedger(sql)
   const included = ledger.accounts.filter((account) => !account.isExcluded)
   const ids = new Set(included.map((account) => account.id))
   const trades = tradesOf(ledger.activities).filter((trade) => ids.has(trade.accountId))

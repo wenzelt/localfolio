@@ -2,7 +2,7 @@ import type { Sql } from 'postgres'
 import { add, decimalToFraction, divide, formatFraction, signedDecimalToFraction } from './fraction'
 import type { Fraction } from './fraction'
 import { calculatePosition } from './ledger'
-import { chronological, readLedger } from './ledger-store'
+import { chronological, readAdjustedLedger } from './ledger-store'
 import type { LedgerAccount, LedgerActivity } from './ledger-store'
 import { latest } from './performance'
 import type { RateRow } from './performance'
@@ -56,7 +56,7 @@ export function positionReport(
 // With a rate history, every USD trade is converted at the latest rate on or before its day, at most seven days old,
 // the same rule the chart and the valuation report use. Without one, positions stay in their trade currency.
 export async function readPositionReport(sql: Sql, rates?: RateRow[]) {
-  const ledger = await readLedger(sql)
+  const ledger = await readAdjustedLedger(sql)
   if (rates === undefined) return positionReport(ledger)
   const byDate: Record<string, string> = Object.create(null)
   for (const date of usdRateDatesOf(ledger.activities)) {

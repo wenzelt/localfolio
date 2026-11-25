@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import type { Sql, TransactionSql } from 'postgres'
 import { parseGhostfolioJson } from './ghostfolio'
 import { InputError } from './input-error'
+import { adjustForSplits, readSplits } from './splits'
 
 export type Counts = { accounts: number; balances: number; tags: number; activities: number }
 
@@ -181,4 +182,12 @@ export async function readLedger(sql: Sql): Promise<{ accounts: LedgerAccount[];
     })),
     activities: [...activities],
   }
+}
+
+// The ledger as the dashboard values it: trades from before a split are restated in post-split shares.
+// The raw read stays for the transaction export, which must show what was recorded.
+export async function readAdjustedLedger(sql: Sql) {
+  const ledger = await readLedger(sql)
+  const symbols = [...new Set(ledger.activities.flatMap((activity) => activity.symbol === null ? [] : [activity.symbol]))]
+  return { ...ledger, activities: adjustForSplits(ledger.activities, await readSplits(sql, symbols)) }
 }

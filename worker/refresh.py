@@ -70,6 +70,8 @@ def plan_refresh(activities, today, stored=None):
         lookback = timedelta(days=LOOKBACK_DAYS)
         return symbol not in held and rows is not None and rows[0] <= first_trades[symbol] and rows[1] >= last_trades[symbol] - lookback
 
+    # A new split makes the whole stored history stale, so the fetch can start over from here.
+    full_starts = {symbol: first - timedelta(days=LOOKBACK_DAYS) for symbol, first in sorted(first_trades.items())}
     history_starts = {symbol: refresh_start(first, stored['prices'].get(symbol))
                       for symbol, first in sorted(first_trades.items()) if not covered(symbol)}
     return {
@@ -78,8 +80,14 @@ def plan_refresh(activities, today, stored=None):
         'symbols': held,
         'historyStart': min(history_starts.values(), default=None),
         'historyStarts': history_starts,
+        'fullStarts': full_starts,
         'historySymbols': sorted(first_trades),
     }
+
+
+def price_options(plan, symbol, start):
+    full_start = plan['fullStarts'][symbol]
+    return {'full_start': full_start.isoformat()} if full_start < start else {}
 
 
 def failure_reason(error):
@@ -105,7 +113,7 @@ def refresh_import(connection, today, dry_run=False, rates=refresh_rates, quotes
             failures.append(f'{symbol} ({failure_reason(error)})')
     for symbol, first_day in plan['historyStarts'].items():
         try:
-            price_count += prices(connection, [symbol], first_day.isoformat(), end)
+            price_count += prices(connection, [symbol], first_day.isoformat(), end, **price_options(plan, symbol, first_day))
         except Exception as error:
             failures.append(f'{symbol} history ({failure_reason(error)})')
     summary = (f'Processed {fx_count} FX observations, {quote_count} security quotes '
@@ -116,13 +124,15 @@ def refresh_import(connection, today, dry_run=False, rates=refresh_rates, quotes
 def refresh_intraday(connection, today, rates=refresh_rates, prices=refresh_price_history):
     """Re-fetch the recent window for held symbols so today's partial bar stays current."""
     start, end = (today - timedelta(days=INTRADAY_WINDOW_DAYS)).isoformat(), today.isoformat()
-    symbols = plan_refresh(load_activities(connection), today)['symbols']
+    plan = plan_refresh(load_activities(connection), today)
+    symbols = plan['symbols']
+    window_start = today - timedelta(days=INTRADAY_WINDOW_DAYS)
     fx_count = rates(connection, start, end)
     price_count = 0
     failures = []
     for symbol in symbols:
         try:
-            price_count += prices(connection, [symbol], start, end)
+            price_count += prices(connection, [symbol], start, end, **price_options(plan, symbol, window_start))
         except Exception as error:
             failures.append(f'{symbol} ({failure_reason(error)})')
     summary = f'Processed {fx_count} FX observations and {price_count} price rows'
