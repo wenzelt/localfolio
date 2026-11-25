@@ -1,5 +1,5 @@
 import type { Sql } from 'postgres'
-import { chronological, readLedger } from './ledger-store'
+import { chronological, readAdjustedLedger } from './ledger-store'
 import { positionActivitiesOf } from './positions'
 import { readCachedRates } from './fx-cache'
 import { readCachedQuotes } from './quote-cache'
@@ -10,7 +10,7 @@ export async function readValuationReport(sql: Sql, asOf: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(asOf) || !Number.isFinite(Date.parse(asOf)) || new Date(asOf).toISOString().slice(0, 10) !== asOf) {
     throw new InputError('Invalid valuation date')
   }
-  const document = await readLedger(sql)
+  const document = await readAdjustedLedger(sql)
   const trades = positionActivitiesOf(document.activities)
   if (trades.some((trade) => trade.date.slice(0, 10) > asOf)) throw new InputError('Valuation date precedes imported activity')
   const dates = [...new Set(trades.filter((trade) => trade.currency === 'USD').map((trade) => trade.date.slice(0, 10)))]

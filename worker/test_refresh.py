@@ -218,8 +218,9 @@ class RefreshImportTests(unittest.TestCase):
         rates, prices = MagicMock(return_value=5), MagicMock(return_value=5)
         self.refresh(rates=rates, prices=prices)
         rates.assert_called_once_with(self.connection, '2026-03-12', '2026-03-20')
-        self.assertEqual(prices.call_args_list, [call(self.connection, ['AAA'], '2026-03-12', '2026-03-20'),
-                                                 call(self.connection, ['BBB'], '2026-03-12', '2026-03-20')])
+        # A split found in the week fetched here makes the call start over from the symbol's first trade.
+        self.assertEqual(prices.call_args_list, [call(self.connection, ['AAA'], '2026-03-12', '2026-03-20', full_start='2024-12-26'),
+                                                 call(self.connection, ['BBB'], '2026-03-12', '2026-03-20', full_start='2025-12-29')])
 
     def test_one_failing_symbol_does_not_stop_the_others(self):
         quotes = MagicMock(side_effect=[ValueError('AAA: possibly delisted\nsecond line'), 1])
@@ -298,8 +299,8 @@ class RefreshIntradayTests(unittest.TestCase):
         order.prices.return_value = 3
         summary = self.refresh(rates=order.rates, prices=order.prices)
         self.assertEqual(order.mock_calls, [call.rates(self.connection, '2026-03-13', '2026-03-20'),
-                                            call.prices(self.connection, ['AAA'], '2026-03-13', '2026-03-20'),
-                                            call.prices(self.connection, ['BBB'], '2026-03-13', '2026-03-20')])
+                                            call.prices(self.connection, ['AAA'], '2026-03-13', '2026-03-20', full_start='2019-12-26'),
+                                            call.prices(self.connection, ['BBB'], '2026-03-13', '2026-03-20', full_start='2025-12-29')])
         self.assertEqual(summary, 'Processed 2 FX observations and 6 price rows')
 
     def test_one_failing_symbol_does_not_stop_the_others(self):
@@ -413,3 +414,26 @@ class CommandTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SplitRefreshTests(unittest.TestCase):
+    def test_full_starts_are_a_week_before_each_symbols_first_trade_even_when_history_is_stored(self):
+        stored = {'prices': {'A': (date(2025, 1, 1), date(2026, 3, 19))}, 'fx': None}
+        plan = plan_refresh(document(trade('BUY', 'A', 1, 'EUR', '2025-02-03'), trade('BUY', 'B', 1, 'EUR', '2026-01-10')), TODAY, stored)
+        self.assertEqual(plan['fullStarts'], {'A': date(2025, 1, 27), 'B': date(2026, 1, 3)})
+
+    def test_the_import_refresh_lets_the_price_fetch_start_over_from_the_first_trade_when_a_split_turns_up(self):
+        connection = MagicMock()
+        prices = MagicMock(return_value=0)
+        stored = {'prices': {'A': (date(2025, 1, 1), date(2026, 3, 19))}, 'fx': None}
+        with patch('worker.refresh.load_activities', return_value=document(trade('BUY', 'A', 1, 'EUR', '2025-02-03'))), \
+                patch('worker.refresh.load_stored_ranges', return_value=stored):
+            refresh_import(connection, TODAY, rates=MagicMock(return_value=0), quotes=MagicMock(return_value=0), prices=prices)
+        prices.assert_called_once_with(connection, ['A'], '2026-03-12', '2026-03-20', full_start='2025-01-27')
+
+    def test_the_intraday_refresh_does_the_same(self):
+        connection = MagicMock()
+        prices = MagicMock(return_value=0)
+        with patch('worker.refresh.load_activities', return_value=document(trade('BUY', 'A', 1, 'EUR', '2025-02-03'))):
+            refresh_intraday(connection, TODAY, rates=MagicMock(return_value=0), prices=prices)
+        prices.assert_called_once_with(connection, ['A'], '2026-03-13', '2026-03-20', full_start='2025-01-27')

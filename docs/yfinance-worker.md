@@ -105,9 +105,19 @@ The ledger-driven refresh also backfills unadjusted daily closes into `security_
 - Percentage change is Modified Dietz, not Ghostfolio's ROAI, so figures differ slightly. Net change is closing value minus opening value minus net flows.
 - Closes and FX use the latest observation on or before the day, at most seven days old. A symbol that cannot be priced is excluded and listed as unpriced.
 - Accounts marked excluded in the export are left out.
-- Yahoo `Close` may be split-adjusted while exported quantities are not, so splits can misstate history.
+- Yahoo `Close` is split-adjusted, and the ledger keeps the quantities as they were recorded. See "Stock splits" below.
 - MAX covers the available ledger and cached price history.
 - Verify refreshed prices in your own deployment after rebuilding the worker and rerunning the refresh. Release validation: [release validation](releases/v0.1.0.md).
+
+## Stock splits
+
+Yahoo restates every past close after a split, but the rows already stored keep the old scale, and the ledger still holds pre-split share counts. Without a correction the chart falls by the split ratio (about 98% for a 1:60 split) and Today shows the same drop.
+
+The price refresh now asks Yahoo for corporate actions and records each split in `security_splits` (`symbol`, `effective_on`, `ratio`, where ratio is new shares per old share: 60 for a 1:60 split, 0.1 for a 10:1 reverse split). When a split that is not stored yet shows up, that symbol's history is fetched again from a week before its first trade, so the stored closes are all on the new scale, and the closes and the split are written in one transaction. If the second fetch fails, nothing is written and the next run tries again. Only splits inside the fetched window are noticed: the last week on the intraday refresh, and from a week before the last stored day on the full refresh.
+
+The dashboard, the position report and the valuation report restate each trade made before a split in post-split shares (`readAdjustedLedger` in `src/ledger-store.ts`): quantity times the ratio, unit price divided by it, so the amount paid is unchanged. A trade on the effective day is taken as already at the new price. The transaction export still shows what was recorded.
+
+Enter trades in the units of the day they were made. A trade dated before a split but typed in post-split shares is scaled a second time. A split the worker did not see, for example because it was down for more than a week, can be added by hand to `security_splits`, followed by a full refresh of that symbol's history.
 
 ## Symbol mapping
 
