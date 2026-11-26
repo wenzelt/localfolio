@@ -5,7 +5,7 @@ import { readRateHistory } from './fx-cache'
 import { readAdjustedLedger, tradesOf } from './ledger-store'
 import { latest } from './performance'
 import type { RateRow } from './performance'
-import { readPriceHistory } from './price-history'
+import { readAdjustedPriceHistory } from './splits'
 import type { HistoricalPrice } from './price-history'
 
 // One position per symbol: it does not matter which account holds it, so the accounts are only named.
@@ -90,7 +90,7 @@ export async function readDailyMovement(sql: Sql, asOf: string): Promise<DailyMo
   const ids = new Set(included.map((account) => account.id))
   const trades = tradesOf(ledger.activities).filter((trade) => ids.has(trade.accountId))
   if (trades.length === 0) return []
-  const prices = await readPriceHistory(sql, [...new Set(trades.map((trade) => trade.symbol))], asOf)
+  const prices = await readAdjustedPriceHistory(sql, [...new Set(trades.map((trade) => trade.symbol))], asOf)
   const rates = await readRateHistory(sql, asOf)
   return dailyMovement({ accounts: included.map(({ id, name }) => ({ id, name })), trades, prices, rates }, asOf)
 }

@@ -105,17 +105,19 @@ The ledger-driven refresh also backfills unadjusted daily closes into `security_
 - Percentage change is Modified Dietz, not Ghostfolio's ROAI, so figures differ slightly. Net change is closing value minus opening value minus net flows.
 - Closes and FX use the latest observation on or before the day, at most seven days old. A symbol that cannot be priced is excluded and listed as unpriced.
 - Accounts marked excluded in the export are left out.
-- Yahoo `Close` is split-adjusted, and the ledger keeps the quantities as they were recorded. See "Stock splits" below.
+- Yahoo `Close` may or may not be split-adjusted, and the ledger keeps the quantities as they were recorded. See "Stock splits" below.
 - MAX covers the available ledger and cached price history.
 - Verify refreshed prices in your own deployment after rebuilding the worker and rerunning the refresh. Release validation: [release validation](releases/v0.1.0.md).
 
 ## Stock splits
 
-Yahoo restates every past close after a split, but the rows already stored keep the old scale, and the ledger still holds pre-split share counts. Without a correction the chart falls by the split ratio (about 98% for a 1:60 split) and Today shows the same drop.
+A split changes the share count and the price by the same factor, and the stored data does not follow on its own. The ledger keeps the share counts as recorded, and Yahoo may or may not restate the old closes: for some tickers (ANX.PA was one) it leaves them at the old price. Without a correction a 1:60 split makes the chart and Today show a drop of about 98%, or, with trades restated but closes not, a jump to about 60 times the real value.
 
-The price refresh now asks Yahoo for corporate actions and records each split in `security_splits` (`symbol`, `effective_on`, `ratio`, where ratio is new shares per old share: 60 for a 1:60 split, 0.1 for a 10:1 reverse split). When a split that is not stored yet shows up, that symbol's history is fetched again from a week before its first trade, so the stored closes are all on the new scale, and the closes and the split are written in one transaction. If the second fetch fails, nothing is written and the next run tries again. Only splits inside the fetched window are noticed: the last week on the intraday refresh, and from a week before the last stored day on the full refresh.
+The price refresh asks Yahoo for corporate actions and records each split in `security_splits` (`symbol`, `effective_on`, `ratio`, where ratio is new shares per old share: 60 for a 1:60 split, 0.1 for a 10:1 reverse split). When a split that is not stored yet shows up, that symbol's history is fetched again from a week before its first trade, and the closes and the split are written in one transaction. If the second fetch fails, nothing is written and the next run tries again. Only splits inside the fetched window are noticed: the last week on the intraday refresh, and from a week before the last stored day on the full refresh.
 
-The dashboard, the position report and the valuation report restate each trade made before a split in post-split shares (`readAdjustedLedger` in `src/ledger-store.ts`): quantity times the ratio, unit price divided by it, so the amount paid is unchanged. A trade on the effective day is taken as already at the new price. The transaction export still shows what was recorded.
+The dashboard reads both sides on one scale, post-split shares:
+- Trades made before a split are restated (`readAdjustedLedger` in `src/ledger-store.ts`): quantity times the ratio, unit price divided by it, so the amount paid is unchanged. A trade on the effective day is taken as already at the new price. The transaction export still shows what was recorded.
+- Closes are checked against each split (`adjustCloses` in `src/splits.ts`). If the last close before the split sits about one ratio away from the first close after it, the closes before the split are still on the old scale and are divided by the ratio. If the two are close, Yahoo adjusted them already and nothing changes. This works on what is stored, so it does not depend on how Yahoo treats a given ticker, and it also corrects data stored earlier.
 
 Enter trades in the units of the day they were made. A trade dated before a split but typed in post-split shares is scaled a second time. A split the worker did not see, for example because it was down for more than a week, can be added by hand to `security_splits`, followed by a full refresh of that symbol's history.
 
