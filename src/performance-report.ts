@@ -5,7 +5,8 @@ import { readAdjustedLedger, tradesOf } from './ledger-store'
 import { calculatePerformance, latest } from './performance'
 import { performanceStart } from './performance-period'
 import type { PerformancePeriod } from './performance-period'
-import { readPriceHistory, readPricesFetchedAt } from './price-history'
+import { readPricesFetchedAt } from './price-history'
+import { readAdjustedPriceHistory } from './splits'
 
 // A scope is one symbol, across every included account unless an account is given.
 export async function readPerformanceReport(sql: Sql, asOf: string, period: PerformancePeriod, scope?: { symbol: string; accountId?: string }) {
@@ -19,7 +20,7 @@ export async function readPerformanceReport(sql: Sql, asOf: string, period: Perf
   }))
   if (scope && activities.length === 0) return null
   const symbols = [...new Set(activities.map((trade) => trade.symbol))]
-  const prices = await readPriceHistory(sql, symbols, asOf)
+  const prices = await readAdjustedPriceHistory(sql, symbols, asOf)
   const rates = await readRateHistory(sql, asOf)
   const needsFx = activities.some((trade) => trade.currency === 'USD')
   const performance = calculatePerformance({ activities, prices, rates }, asOf, period)

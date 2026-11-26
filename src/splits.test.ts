@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adjustForSplits, readSplits } from './splits'
+import { adjustCloses, adjustForSplits, readAdjustedPriceHistory, readSplits } from './splits'
 import { calculatePerformance } from './performance'
 import { dailyMovement } from './daily-movement'
 import { cacheTables, withIsolatedDatabase } from './test-support/schema'
@@ -65,6 +65,61 @@ describe('readSplits', () => {
       await sql`INSERT INTO security_splits VALUES ('ANX.PA', '2026-11-23', 60, 'yfinance', now()), ('OTHER', '2026-01-02', 2, 'yfinance', now())`
       expect(await readSplits(sql, ['ANX.PA'])).toEqual([{ symbol: 'ANX.PA', effectiveOn: '2026-11-23', ratio: '60' }])
       expect(await readSplits(sql, [])).toEqual([])
+    })
+  })
+})
+
+describe('adjustCloses', () => {
+  const bar = (symbol: string, observedOn: string, close: string) => ({ symbol, observedOn, close, currency: 'EUR' as const })
+  const splits = [split('ANX.PA', '2026-11-23', '60')]
+
+  it('puts closes that are still on the old scale onto the new one', () => {
+    const raw = [bar('ANX.PA', '2026-10-01', '240'), bar('ANX.PA', '2026-11-20', '268'), bar('ANX.PA', '2026-11-23', '4.7'), bar('ANX.PA', '2026-11-24', '4.8')]
+    expect(adjustCloses(raw, splits).map((price) => price.close)).toEqual(['4', '4.46666666666666666666666666', '4.7', '4.8'])
+  })
+
+  it('leaves closes alone when the provider already adjusted them', () => {
+    const adjusted = [bar('ANX.PA', '2026-10-01', '4'), bar('ANX.PA', '2026-11-20', '4.4666667'), bar('ANX.PA', '2026-11-23', '4.7')]
+    expect(adjustCloses(adjusted, splits)).toEqual(adjusted)
+  })
+
+  it('handles a reverse split, other symbols, rows on one side only and no splits', () => {
+    const reverse = [split('R', '2026-05-04', '0.1')]
+    const rows = [bar('R', '2026-05-01', '5'), bar('R', '2026-05-04', '50'), bar('OTHER', '2026-05-01', '5'), bar('OTHER', '2026-05-04', '50')]
+    expect(adjustCloses(rows, reverse).map((price) => price.close)).toEqual(['50', '50', '5', '50'])
+    const after = [bar('ANX.PA', '2026-11-23', '4.7')]
+    expect(adjustCloses(after, splits)).toEqual(after)
+    const before = [bar('ANX.PA', '2026-11-20', '268')]
+    expect(adjustCloses(before, splits)).toEqual(before)
+    expect(adjustCloses(rows, [])).toBe(rows)
+  })
+
+  it('keeps the order and compounds two splits', () => {
+    const two = [split('X', '2026-02-01', '2'), split('X', '2026-03-01', '3')]
+    const rows = [bar('X', '2026-01-15', '600'), bar('X', '2026-02-15', '300'), bar('X', '2026-03-15', '100')]
+    expect(adjustCloses(rows, two).map((price) => [price.observedOn, price.close])).toEqual([['2026-01-15', '100'], ['2026-02-15', '100'], ['2026-03-15', '100']])
+  })
+
+  it('keeps the chart flat across the split when the closes were never adjusted', () => {
+    const raw = [bar('ANX.PA', '2026-10-01', '240'), bar('ANX.PA', '2026-11-20', '268'), bar('ANX.PA', '2026-11-23', '4.7')]
+    const activities = adjustForSplits([buy('ANX.PA', '2026-10-01', '10', '240')], splits)
+    const series = calculatePerformance({ activities, prices: adjustCloses(raw, splits), rates: [] }, '2026-11-23', 'MAX').series
+    const value = (day: string) => Number(series.find((point) => point.date === day)?.value)
+    expect(value('2026-10-01')).toBeCloseTo(2400, 1)
+    expect(value('2026-11-20')).toBeCloseTo(2680, 1)
+    expect(value('2026-11-23')).toBeCloseTo(2820, 1)
+  })
+})
+
+describe('readAdjustedPriceHistory', () => {
+  it('reads closes and splits together', async () => {
+    await withIsolatedDatabase(async (sql) => {
+      await sql.unsafe(cacheTables)
+      await sql`CREATE TABLE security_splits (symbol text, effective_on date, ratio numeric, source text, fetched_at timestamptz)`
+      await sql`INSERT INTO security_splits VALUES ('ANX.PA', '2026-11-23', 60, 'yfinance', now())`
+      await sql`INSERT INTO security_prices VALUES ('ANX.PA', '2026-11-20', 268, 'EUR', 'yfinance', now()), ('ANX.PA', '2026-11-23', 4.7, 'EUR', 'yfinance', now())`
+      const prices = await readAdjustedPriceHistory(sql, ['ANX.PA'], '2026-11-24')
+      expect(prices.map((price) => Number(price.close).toFixed(2))).toEqual(['4.47', '4.70'])
     })
   })
 })
